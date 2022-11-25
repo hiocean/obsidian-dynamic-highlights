@@ -21,6 +21,7 @@ import { ImportModal } from "./import";
 import { markTypes } from "./settings";
 import { materialPalenight } from "../editor/theme-dark";
 import { basicLightTheme } from "../editor/theme-light";
+import { StaticHighlightOptions } from "src/highlighters/static";
 
 export class SettingTab extends PluginSettingTab {
   plugin: DynamicHighlightsPlugin;
@@ -81,13 +82,60 @@ export class SettingTab extends PluginSettingTab {
       .addClass("persistent-highlights");
     containerEl.addClass("dynamic-highlights-settings");
 
-    const defineQueryUI = new Setting(containerEl);
+    
 
+    this.queryUI(config, containerEl);
+
+    containerEl.createEl("h3", {
+      text: "Selection Highlights",
+    });
+    new Setting(containerEl).setName("Highlight all occurrences of the word under the cursor").addToggle(toggle => {
+      toggle.setValue(this.plugin.settings.selectionHighlighter.highlightWordAroundCursor).onChange(value => {
+        this.plugin.settings.selectionHighlighter.highlightWordAroundCursor = value;
+        this.plugin.saveSettings();
+        this.plugin.updateSelectionHighlighter();
+      });
+    });
+    new Setting(containerEl).setName("Highlight all occurrences of the actively selected text").addToggle(toggle => {
+      toggle.setValue(this.plugin.settings.selectionHighlighter.highlightSelectedText).onChange(value => {
+        this.plugin.settings.selectionHighlighter.highlightSelectedText = value;
+        this.plugin.saveSettings();
+        this.plugin.updateSelectionHighlighter();
+      });
+    });
+    new Setting(containerEl)
+      .setName("Highlight delay")
+      .setDesc("The delay, in milliseconds, before selection highlights will appear. Must be greater than 200ms.")
+      .addText(text => {
+        text.inputEl.type = "number";
+        text.setValue(String(this.plugin.settings.selectionHighlighter.highlightDelay)).onChange(value => {
+          if (parseInt(value) < 200) value = "200";
+          if (parseInt(value) >= 0) this.plugin.settings.selectionHighlighter.highlightDelay = parseInt(value);
+          this.plugin.saveSettings();
+          this.plugin.updateSelectionHighlighter();
+        });
+      });
+    new Setting(containerEl)
+      .setName("Ignored words")
+      .setDesc("A comma delimted list of words that will not be highlighted")
+      .addTextArea(text => {
+        text.inputEl.addClass("ignored-words-input");
+        text.setValue(this.plugin.settings.selectionHighlighter.ignoredWords).onChange(async value => {
+          this.plugin.settings.selectionHighlighter.ignoredWords = value;
+          await this.plugin.saveSettings();
+          this.plugin.updateSelectionHighlighter();
+        });
+      });
+  }
+
+  private queryUI( config: StaticHighlightOptions, containerEl: HTMLElement) {
+    const defineQueryUI = new Setting(containerEl);
     defineQueryUI
-      .setName("Define persistent highlighters")
+      .setName("Define Common highlighters")
       .setClass("highlighter-definition")
       .setDesc(
-        `In this section you define a unique highlighter name along with a background color and a search term/expression. Enable the regex toggle when entering a regex query. Make sure to click the save button once you're done defining the highlighter.`
+        `In this section you define a unique highlighter name along with the css.
+        Make sure to click the save button.`
       );
 
     const classInput = new TextComponent(defineQueryUI.controlEl);
@@ -165,8 +213,8 @@ export class SettingTab extends PluginSettingTab {
       }
     });
 
-    type MarkTypes = Record<markTypes, { description: string; defaultState: boolean }>;
-    type MarkItems = Partial<Record<markTypes, { element: HTMLElement; component: ToggleComponent }>>;
+    type MarkTypes = Record<markTypes, { description: string; defaultState: boolean; }>;
+    type MarkItems = Partial<Record<markTypes, { element: HTMLElement; component: ToggleComponent; }>>;
     const buildMarkerTypes = (parentEl: HTMLElement) => {
       const types: MarkItems = {};
       const marks: MarkTypes = {
@@ -181,7 +229,8 @@ export class SettingTab extends PluginSettingTab {
       for (type in marks) {
         let mark = marks[type];
         const wrapper = container.createDiv("mark-wrapper");
-        if (type === "group") wrapper.hide();
+        if (type === "group")
+          wrapper.hide();
         wrapper.createSpan("match-type").setText(mark.description);
         const component = new ToggleComponent(wrapper).setValue(mark.defaultState);
         types[type] = {
@@ -277,7 +326,7 @@ export class SettingTab extends PluginSettingTab {
             .setClass("mod-cta")
             .setIcon("pencil")
             .setTooltip("Edit")
-            .onClick(async evt => {
+            .onClick(async (evt) => {
               let options = config.queries[highlighter];
               classInput.inputEl.value = highlighter;
               pickrInstance.setColor(options.color);
@@ -292,12 +341,10 @@ export class SettingTab extends PluginSettingTab {
               }
               this.editor.setState(EditorState.create({ doc: options.css ? options.css : "", extensions: extensions }));
               if (options?.mark) {
-                Object.entries(marks).map(([key, value]) =>
-                  options.mark!.includes(key) ? value.component.setValue(true) : value.component.setValue(false)
+                Object.entries(marks).map(([key, value]) => options.mark!.includes(key) ? value.component.setValue(true) : value.component.setValue(false)
                 );
               } else {
-                Object.entries(marks).map(([key, value]) =>
-                  key === "match" ? value.component.setValue(true) : value.component.setValue(false)
+                Object.entries(marks).map(([key, value]) => key === "match" ? value.component.setValue(true) : value.component.setValue(false)
                 );
               }
               containerEl.scrollTop = 0;
@@ -339,47 +386,6 @@ export class SettingTab extends PluginSettingTab {
         this.plugin.saveSettings();
       },
     });
-
-    containerEl.createEl("h3", {
-      text: "Selection Highlights",
-    });
-    new Setting(containerEl).setName("Highlight all occurrences of the word under the cursor").addToggle(toggle => {
-      toggle.setValue(this.plugin.settings.selectionHighlighter.highlightWordAroundCursor).onChange(value => {
-        this.plugin.settings.selectionHighlighter.highlightWordAroundCursor = value;
-        this.plugin.saveSettings();
-        this.plugin.updateSelectionHighlighter();
-      });
-    });
-    new Setting(containerEl).setName("Highlight all occurrences of the actively selected text").addToggle(toggle => {
-      toggle.setValue(this.plugin.settings.selectionHighlighter.highlightSelectedText).onChange(value => {
-        this.plugin.settings.selectionHighlighter.highlightSelectedText = value;
-        this.plugin.saveSettings();
-        this.plugin.updateSelectionHighlighter();
-      });
-    });
-    new Setting(containerEl)
-      .setName("Highlight delay")
-      .setDesc("The delay, in milliseconds, before selection highlights will appear. Must be greater than 200ms.")
-      .addText(text => {
-        text.inputEl.type = "number";
-        text.setValue(String(this.plugin.settings.selectionHighlighter.highlightDelay)).onChange(value => {
-          if (parseInt(value) < 200) value = "200";
-          if (parseInt(value) >= 0) this.plugin.settings.selectionHighlighter.highlightDelay = parseInt(value);
-          this.plugin.saveSettings();
-          this.plugin.updateSelectionHighlighter();
-        });
-      });
-    new Setting(containerEl)
-      .setName("Ignored words")
-      .setDesc("A comma delimted list of words that will not be highlighted")
-      .addTextArea(text => {
-        text.inputEl.addClass("ignored-words-input");
-        text.setValue(this.plugin.settings.selectionHighlighter.ignoredWords).onChange(async value => {
-          this.plugin.settings.selectionHighlighter.ignoredWords = value;
-          await this.plugin.saveSettings();
-          this.plugin.updateSelectionHighlighter();
-        });
-      });
   }
 }
 

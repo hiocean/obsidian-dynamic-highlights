@@ -1,3 +1,13 @@
+/*
+ * @Author: hiocean
+ * @Date: 2022-11-25 10:12:11
+ * @LastEditors: hiocean
+ * @LastEditTime: 2022-11-25 10:24:58
+ * @FilePath: \obsidian-dynamic-highlights\esbuild.config.mjs
+ * @Description: 
+ * 
+ * Copyright (c) 2022 by hiocean, All Rights Reserved. 
+ */
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
@@ -54,6 +64,6 @@ esbuild
     logLevel: "info",
     sourcemap: prod ? false : "inline",
     treeShaking: true,
-    outfile: "dist/main.js",
+    outfile: "main.js",
   })
   .catch(() => process.exit(1));
