@@ -1,3 +1,13 @@
+/*
+ * @Author: hiocean
+ * @Date: 2022-11-25 10:12:11
+ * @LastEditors: hiocean
+ * @LastEditTime: 2022-11-25 14:28:25
+ * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
+ * @Description: 
+ * 
+ * Copyright (c) 2022 by hiocean, All Rights Reserved. 
+ */
 import { StaticHighlightOptions } from "src/highlighters/static";
 import { SelectionHighlightOptions } from "../highlighters/selection";
 import { ignoredWords } from "./ignoredWords";
@@ -29,9 +39,19 @@ export interface SearchQueries {
 
 export type HighlighterOptions = SelectionHighlightOptions | StaticHighlightOptions;
 
+
+export type frontmatterHighlightOptions = {
+
+  enableFrontmatterHighlight: boolean;
+  frontmatterHighlightKeywords: string;
+  queries: SearchQueries;
+  queryOrder: string[];
+  
+};
 export interface DynamicHighlightsSettings {
   selectionHighlighter: SelectionHighlightOptions;
   staticHighlighter: StaticHighlightOptions;
+  frontmatterHighlighter:frontmatterHighlightOptions;
 }
 
 export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
@@ -47,6 +67,12 @@ export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
     queries: {},
     queryOrder: [],
   },
+  frontmatterHighlighter: {
+    enableFrontmatterHighlight: true,
+    frontmatterHighlightKeywords: "highlighter",
+    queries: {},
+    queryOrder: [],
+  }
 };
 
 export function setAttributes(element: any, attributes: any) {

@@ -18,7 +18,7 @@ import { basicSetup } from "src/editor/extensions";
 import DynamicHighlightsPlugin from "../main";
 import { ExportModal } from "./export";
 import { ImportModal } from "./import";
-import { markTypes } from "./settings";
+import { frontmatterHighlightOptions, markTypes } from "./settings";
 import { materialPalenight } from "../editor/theme-dark";
 import { basicLightTheme } from "../editor/theme-light";
 import { StaticHighlightOptions } from "src/highlighters/static";
@@ -45,7 +45,7 @@ export class SettingTab extends PluginSettingTab {
     // this.app.keymap.pushScope(this.scope);
     const { containerEl } = this;
     containerEl.empty();
-    const config = this.plugin.settings.staticHighlighter;
+    ;
     const importExportEl = containerEl.createDiv("import-export-wrapper");
     importExportEl.createEl(
       "a",
@@ -82,10 +82,10 @@ export class SettingTab extends PluginSettingTab {
       .addClass("persistent-highlights");
     containerEl.addClass("dynamic-highlights-settings");
 
-    
 
-    this.queryUI(config, containerEl);
 
+    this.queryUI(this.plugin.settings.staticHighlighter, containerEl);
+    // this.frontmatterUI(this.plugin.settings.frontmatterHighlighter, containerEl);
     containerEl.createEl("h3", {
       text: "Selection Highlights",
     });
@@ -128,7 +128,7 @@ export class SettingTab extends PluginSettingTab {
       });
   }
 
-  private queryUI( config: StaticHighlightOptions, containerEl: HTMLElement) {
+  private queryUI(config: StaticHighlightOptions, containerEl: HTMLElement) {
     const defineQueryUI = new Setting(containerEl);
     defineQueryUI
       .setName("Define Common highlighters")
@@ -387,7 +387,177 @@ export class SettingTab extends PluginSettingTab {
       },
     });
   }
-}
+
+
+  private frontmatterUI(config: frontmatterHighlightOptions, containerEl: HTMLElement) {
+    containerEl.createEl("h3", {
+      text: "Frontmatter based Highlights",
+    });
+    new Setting(containerEl)
+      .setName("Enable frontmatter highlighter ")
+      .addToggle(toggle => {
+        toggle
+          .setValue(this.plugin.settings.frontmatterHighlighter.enableFrontmatterHighlight)
+          .onChange(value => {
+            this.plugin.settings.frontmatterHighlighter.enableFrontmatterHighlight = value;
+            this.plugin.saveSettings();
+            this.plugin.updateStaticHighlighter();
+          });
+      });
+    new Setting(containerEl)
+      .setName("Frontmatter keyword")
+      .setDesc("The keyword in the front matter, default is 'highlight'.")
+      .addText(text => {
+        text.inputEl.type = "string";
+        text.setPlaceholder("highlighter")
+        text.setValue("").onChange(value => {
+          this.plugin.settings.frontmatterHighlighter.frontmatterHighlightKeywords = value;
+          this.plugin.saveSettings();
+          this.plugin.updateStaticHighlighter();
+        });
+      });
+
+    const defineQueryUI = new Setting(containerEl);
+    defineQueryUI.setName("Define Frontmatter highlighters")
+      .setClass("highlighter-definition")
+      .setDesc(`In this section you define highlighters based on front matter. Make sure to click the save button.`);
+
+
+    const customCSSWrapper = defineQueryUI.controlEl.createDiv("custom-css-wrapper");
+    customCSSWrapper.createSpan("setting-item-name").setText("Custom CSS");
+    const customCSSEl = new TextAreaComponent(customCSSWrapper);
+    this.editor = editorFromTextArea(customCSSEl.inputEl, basicSetup);
+    customCSSEl.inputEl.addClass("custom-css");
+
+    var id: number = Object.keys(config.queries).length + 1;
+    const className = `fm${String(id)}`
+
+    const saveButton = new ButtonComponent(customCSSWrapper);
+    saveButton
+      .setClass("action-button")
+      .setClass("action-button-save")
+      .setClass("mod-cta")
+      .setIcon("save")
+      .setTooltip("Save")
+      .onClick(async (buttonEl: any) => {
+        let customCss = this.editor.state.doc.toString();
+        config.queries[className] = {
+          class: className,
+          color: "",
+          regex: true,
+          query: "",
+          css: customCss,
+        };
+        await this.plugin.saveSettings();
+        this.plugin.updateStaticHighlighter();
+        this.plugin.updateCustomCSS();
+        this.plugin.updateStyles();
+        this.display();
+      });
+
+
+    // const settingItem = containerEl.createEl("div");
+    // new Setting(containerEl)
+      
+    //   .setName("highlighter")
+    //   .setDesc("99")
+    //   .addButton(button => {
+    //     button
+    //       .setClass("action-button")
+    //       .setClass("action-button-edit")
+    //       .setClass("mod-cta")
+    //       .setIcon("pencil")
+    //       .setTooltip("Edit")
+         
+    //   })
+
+    const highlightersContainer = containerEl.createEl("div", {
+      cls: "highlighter-container",
+    });
+
+    this.plugin.settings.frontmatterHighlighter.queryOrder.forEach(highlighter => {
+      const { color, regex } = config.queries[highlighter];
+      const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill=${color} stroke=${color} stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M20.707 5.826l-3.535-3.533a.999.999 0 0 0-1.408-.006L7.096 10.82a1.01 1.01 0 0 0-.273.488l-1.024 4.437L4 18h2.828l1.142-1.129l3.588-.828c.18-.042.345-.133.477-.262l8.667-8.535a1 1 0 0 0 .005-1.42zm-9.369 7.833l-2.121-2.12l7.243-7.131l2.12 2.12l-7.242 7.131zM4 20h16v2H4z"/></svg>`;
+      const settingItem = highlightersContainer.createEl("div");
+      settingItem.id = "dh-" + highlighter;
+      settingItem.addClass("highlighter-item-draggable");
+      const dragIcon = settingItem.createEl("span");
+      const colorIcon = settingItem.createEl("span");
+      dragIcon.addClass("highlighter-setting-icon", "highlighter-setting-icon-drag");
+      colorIcon.addClass("highlighter-setting-icon");
+      colorIcon.innerHTML = icon;
+      setIcon(dragIcon, "three-horizontal-bars");
+      dragIcon.ariaLabel = "Drag to rearrange";
+      let desc: string[] = [];
+
+      desc.push(regex ? "search expression: " : "search term: ");
+      desc.push("css class: " + highlighter);
+      desc.push("color: " + config.queries[highlighter].color);
+
+      new Setting(settingItem)
+        .setClass("highlighter-details")
+        .setName(highlighter)
+        .setDesc(desc.join(" | "))
+        .addButton(button => {
+          button
+            .setClass("action-button")
+            .setClass("action-button-edit")
+            .setClass("mod-cta")
+            .setIcon("pencil")
+            .setTooltip("Edit")
+            .onClick(async (evt) => {
+              let options = config.queries[highlighter];
+
+              let extensions = basicSetup;
+              if (document.body.hasClass("theme-dark")) {
+                extensions.push(materialPalenight);
+              } else {
+                extensions.push(basicLightTheme);
+              }
+              this.editor.setState(EditorState.create({ doc: options.css ? options.css : "", extensions: extensions }));
+
+              containerEl.scrollTop = 0;
+            });
+        })
+        .addButton(button => {
+          button
+            .setClass("action-button")
+            .setClass("action-button-delete")
+            .setIcon("trash")
+            .setClass("mod-warning")
+            .setTooltip("Remove")
+            .onClick(async () => {
+              new Notice(`${highlighter} highlight deleted`);
+              delete config.queries[highlighter];
+              config.queryOrder.remove(highlighter);
+              await this.plugin.saveSettings();
+              this.plugin.updateStyles();
+              this.plugin.updateStaticHighlighter();
+              highlightersContainer.querySelector(`#dh-${highlighter}`)!.detach();
+            });
+        });
+    });
+    let sortableEl = Sortable.create(highlightersContainer, {
+      animation: 500,
+      ghostClass: "highlighter-sortable-ghost",
+      chosenClass: "highlighter-sortable-chosen",
+      dragClass: "highlighter-sortable-drag",
+      handle: ".highlighter-setting-icon-drag",
+      dragoverBubble: true,
+      forceFallback: true,
+      fallbackClass: "highlighter-sortable-fallback",
+      easing: "cubic-bezier(1, 0, 0, 1)",
+      onSort: command => {
+        const arrayResult = config.queryOrder;
+        const [removed] = arrayResult.splice(command.oldIndex!, 1);
+        arrayResult.splice(command.newIndex!, 0, removed);
+        this.plugin.settings.staticHighlighter.queryOrder = arrayResult;
+        this.plugin.saveSettings();
+      },
+    });
+  }
+};
+
 
 function editorFromTextArea(textarea: HTMLTextAreaElement, extensions: Extension) {
   let view = new EditorView({

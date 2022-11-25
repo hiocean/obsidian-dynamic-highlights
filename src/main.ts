@@ -24,6 +24,11 @@ export default class DynamicHighlightsPlugin extends Plugin {
 
   async onload() {
     await this.loadSettings();
+
+    // this.app.workspace.onLayoutReady(() => {
+    //   this.reloadStyles(this.settings);
+    //   createHighlighterIcons(this.settings, this);
+    // });
     this.settingsTab = new SettingTab(this.app, this);
     this.addSettingTab(this.settingsTab);
     addIcons();
@@ -35,6 +40,8 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.registerEditorExtension(this.extensions);
     this.initCSS();
   }
+
+  
 
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
