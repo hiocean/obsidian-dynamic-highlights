@@ -1,11 +1,16 @@
 import { Extension, StateEffect } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { debounce, MarkdownView, Plugin } from "obsidian";
+import { debounce, MarkdownView, Notice, Plugin } from "obsidian";
+import { frontmatterHighlighterExtension } from "./highlighters/frontmatter";
 import { highlightSelectionMatches, reconfigureSelectionHighlighter } from "./highlighters/selection";
 import { buildStyles, staticHighlighterExtension } from "./highlighters/static";
 import addIcons from "./icons/customIcons";
 import { DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions } from "./settings/settings";
 import { SettingTab } from "./settings/ui";
+
+
+
+
 
 interface CustomCSS {
   css: string;
@@ -17,18 +22,26 @@ export default class DynamicHighlightsPlugin extends Plugin {
   extensions: Extension[];
   styles: Extension;
   staticHighlighter: Extension;
+  frontmatterHighlighter: Extension;
   selectionHighlighter: Extension;
   customCSS: Record<string, CustomCSS>;
   styleEl: HTMLElement;
   settingsTab: SettingTab;
+  toBedeleteQuery: string[];
+
+
 
   async onload() {
+    this.toBedeleteQuery = []
     await this.loadSettings();
 
-    this.app.workspace.onLayoutReady(() => {
-      // this.reloadStyles(this.settings);
-      // createHighlighterIcons(this.settings, this);
+    this.app.vault.on("modify", (modifiedFile: { path: any; }) => {
+      const activeFile = this.app.workspace.getActiveFile();
+      if (activeFile && activeFile.path == modifiedFile.path) {
+        this.updateFrontmatter()
+      }
     });
+    // this.updateFrontmatter();
     this.settingsTab = new SettingTab(this.app, this);
     this.addSettingTab(this.settingsTab);
     addIcons();
@@ -41,7 +54,38 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.initCSS();
   }
 
-  
+  async updateFrontmatter() {
+    if (!this.settings.frontmatterHighlighter.enableFrontmatterHighlight) return
+    const currFile = this.app.workspace.getActiveFile()!
+    const currFrontmatter = this.app.metadataCache.getFileCache(currFile)?.frontmatter //todo
+    if (!currFrontmatter) return
+    let highlightKw = currFrontmatter[this.settings.frontmatterHighlighter.frontmatterHighlightKeywords]
+
+    if (highlightKw) {
+      if (typeof highlightKw === 'string' && highlightKw.match(/[,，]/)) {
+        highlightKw = highlightKw.split(/[,，]/).filter(e => e)
+      } else if (highlightKw instanceof Array) {
+        highlightKw = highlightKw
+      } else {
+        highlightKw = [highlightKw]
+      }
+      new Notice("Show" + highlightKw);
+
+      const queries = this.settings.frontmatterHighlighter.queries
+      const cssLenth = Object.keys(queries).length
+      const index = highlightKw.length > cssLenth ? cssLenth : highlightKw.length
+      for (let i = 0; i < index; i++) {
+
+        const className = Object.keys(queries)[i]
+        queries[className].query = highlightKw[i]
+        this.settings.staticHighlighter.queries[className] = queries[className]
+        this.toBedeleteQuery.push(className)
+        new Notice("addded" + className + highlightKw[i]);  //todo
+      }
+      this.updateStaticHighlighter()
+      await this.saveSettings();
+    }
+  }
 
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
@@ -80,6 +124,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
   updateStaticHighlighter() {
     this.extensions.remove(this.staticHighlighter);
     this.staticHighlighter = staticHighlighterExtension(this);
+    // this.frontmatterHighlighter = frontmatterHighlighterExtension(this);
     this.extensions.push(this.staticHighlighter);
     this.app.workspace.updateOptions();
   }
@@ -116,4 +161,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     1000,
     true
   );
+  onunload() {
+    this.toBedeleteQuery.forEach(e => { delete this.settings.staticHighlighter.queries[e] })
+  }
 }

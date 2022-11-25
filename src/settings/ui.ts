@@ -18,7 +18,7 @@ import { basicSetup } from "src/editor/extensions";
 import DynamicHighlightsPlugin from "../main";
 import { ExportModal } from "./export";
 import { ImportModal } from "./import";
-import { frontmatterHighlightOptions, markTypes } from "./settings";
+import { FrontmatterHighlightOptions, markTypes } from "./settings";
 import { materialPalenight } from "../editor/theme-dark";
 import { basicLightTheme } from "../editor/theme-light";
 import { StaticHighlightOptions } from "src/highlighters/static";
@@ -57,7 +57,7 @@ export class SettingTab extends PluginSettingTab {
     this.ignoredWordUI(containerEl);
   }
 
-  private frontmatterUI(config: frontmatterHighlightOptions, containerEl: HTMLElement) {
+  private frontmatterUI(config: FrontmatterHighlightOptions, containerEl: HTMLElement) {
     containerEl.createEl("h3", {
       text: "Frontmatter based Highlights",
     });
@@ -99,7 +99,7 @@ export class SettingTab extends PluginSettingTab {
     this.editor = editorFromTextArea(customCSSEl.inputEl, basicSetup);
     customCSSEl.inputEl.addClass("custom-css");
 
-    var id: number = Object.keys(config.queries).length + 1;
+    var id: number = Object.keys(config.queries).length ;
     const className = `fm${String(id)}`
 
     const saveButton = new ButtonComponent(customCSSWrapper);

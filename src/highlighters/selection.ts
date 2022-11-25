@@ -30,7 +30,7 @@ const defaultHighlightOptions: SelectionHighlightOptions = {
   highlightDelay: 0,
 };
 
-export const highlightConfig = Facet.define<SelectionHighlightOptions, Required<SelectionHighlightOptions>>({
+const highlightConfig = Facet.define<SelectionHighlightOptions, Required<SelectionHighlightOptions>>({
   combine(options: readonly SelectionHighlightOptions[]) {
     return combineConfig(options, defaultHighlightOptions, {
       highlightWordAroundCursor: (a, b) => a || b,

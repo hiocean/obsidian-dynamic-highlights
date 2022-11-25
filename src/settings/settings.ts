@@ -2,7 +2,7 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-11-25 14:28:25
+ * @LastEditTime: 2022-11-25 17:45:57
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
@@ -38,9 +38,10 @@ export interface SearchQueries {
 }
 
 export type HighlighterOptions = SelectionHighlightOptions | StaticHighlightOptions;
+// export type ConfigHighlighterOptions = FrontmatterHighlightOptions | StaticHighlightOptions;
 
 
-export type frontmatterHighlightOptions = {
+export type FrontmatterHighlightOptions = {
 
   enableFrontmatterHighlight: boolean;
   frontmatterHighlightKeywords: string;
@@ -51,7 +52,7 @@ export type frontmatterHighlightOptions = {
 export interface DynamicHighlightsSettings {
   selectionHighlighter: SelectionHighlightOptions;
   staticHighlighter: StaticHighlightOptions;
-  frontmatterHighlighter:frontmatterHighlightOptions;
+  frontmatterHighlighter:FrontmatterHighlightOptions;
 }
 
 export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {

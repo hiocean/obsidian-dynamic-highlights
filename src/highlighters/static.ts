@@ -170,9 +170,9 @@ const staticHighlighter = ViewPlugin.fromClass(
         // we use the long form attributes: {class: ... } to avoid a CM6 bug with class:
         // the issue was fixed in obs 0.13.20 but we'll leave it like this until the
         // next public release
-        pos = parseInt(pos); // since Object.entries returns keys as strings
+        // pos = ; // since Object.entries returns keys as strings
         const lineDeco = Decoration.line({ attributes: { class: classes.join(" ") } });
-        lineDecos.push(lineDeco.range(pos));
+        lineDecos.push(lineDeco.range(parseInt(pos)));
       });
       return {
         line: Decoration.set(lineDecos.sort((a, b) => a.from - b.from)),
