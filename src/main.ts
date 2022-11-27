@@ -1,7 +1,6 @@
 import { Extension, StateEffect } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { debounce, MarkdownView, Notice, Plugin } from "obsidian";
-import { frontmatterHighlighterExtension } from "./highlighters/frontmatter";
+import { debounce, MarkdownView, Notice, Plugin, TFile } from "obsidian";
 import { highlightSelectionMatches, reconfigureSelectionHighlighter } from "./highlighters/selection";
 import { buildStyles, staticHighlighterExtension } from "./highlighters/static";
 import addIcons from "./icons/customIcons";
@@ -9,8 +8,25 @@ import { DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions } from 
 import { SettingTab } from "./settings/ui";
 
 
+async function getFrontmatter(tf: TFile, highlighterKw: string) {
+  const fullText = await this.app.vault.read(tf);
+  const regexfm = new RegExp(`---[\\s\\S]*?${highlighterKw}[\\s\\S]*?---`, 'gm')
+  const fmMatch = regexfm.exec(fullText); if (!fmMatch) { return }
 
+  let result;
+  const regexKwSingleLine = new RegExp(`^\\s*${highlighterKw}:(.*)$`, 'gm')
+  const fmkw = regexKwSingleLine.exec(fmMatch[0]);
+  if (fmkw) {
+    result = fmkw[1].trim(); if (result) { return result }
+  }
 
+  const regexKwMultiLine = new RegExp(`(?<=^\\s*${highlighterKw}:[\\s]*[\\r\\n]+)(\\s*-.*?\\n)+`, 'gm')
+  result = fmMatch[0].match(regexKwMultiLine);
+  if (result) {
+    result = result[0].split('\n').filter(e => e).map(e => e.replace(/\s*-/, "").trim())
+  }
+  return result;
+}
 
 interface CustomCSS {
   css: string;
@@ -29,18 +45,25 @@ export default class DynamicHighlightsPlugin extends Plugin {
   settingsTab: SettingTab;
   toBedeleteQuery: string[];
 
-
-
   async onload() {
     this.toBedeleteQuery = []
     await this.loadSettings();
 
-    this.app.vault.on("modify", (modifiedFile: { path: any; }) => {
+    this.registerEvent(this.app.vault.on("modify", (modifiedFile: { path: any; }) => {
       const activeFile = this.app.workspace.getActiveFile();
       if (activeFile && activeFile.path == modifiedFile.path) {
-        this.updateFrontmatter()
+        this.updateFrontmatter({ useCache: false });
       }
-    });
+    }))
+    // this.registerEvent(this.app.workspace.on('editor-change', () => {
+    //   this.updateFrontmatter({ useCache: false });
+    // }))
+
+    this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
+      this.updateFrontmatter();
+    }))
+
+
     // this.updateFrontmatter();
     this.settingsTab = new SettingTab(this.app, this);
     this.addSettingTab(this.settingsTab);
@@ -54,36 +77,44 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.initCSS();
   }
 
-  async updateFrontmatter() {
+  async updateFrontmatter({ useCache = true }: { useCache?: boolean; } = {}): Promise<void> {
     if (!this.settings.frontmatterHighlighter.enableFrontmatterHighlight) return
-    const currFile = this.app.workspace.getActiveFile()!
-    const currFrontmatter = this.app.metadataCache.getFileCache(currFile)?.frontmatter //todo
-    if (!currFrontmatter) return
-    let highlightKw = currFrontmatter[this.settings.frontmatterHighlighter.frontmatterHighlightKeywords]
+    const currFile = this.app.workspace.getActiveFile()
+    if (!currFile) return;
+    const kw = this.settings.frontmatterHighlighter.frontmatterHighlightKeywords;
+    let highlightInFm;
 
-    if (highlightKw) {
-      if (typeof highlightKw === 'string' && highlightKw.match(/[,，]/)) {
-        highlightKw = highlightKw.split(/[,，]/).filter(e => e)
-      } else if (highlightKw instanceof Array) {
-        highlightKw = highlightKw
+    if (useCache) {
+      const currFrontmatter = this.app.metadataCache.getFileCache(currFile)?.frontmatter
+      if (!currFrontmatter) return
+      highlightInFm = currFrontmatter[kw]
+    } else {
+      highlightInFm = await getFrontmatter(currFile, kw)
+      console.log("read file" + highlightInFm);
+    }
+
+    if (highlightInFm) {
+      if (typeof highlightInFm === 'string' && highlightInFm.match(/[,，]/)) {
+        highlightInFm = highlightInFm.split(/[,，]/).filter(e => e)
+      } else if (highlightInFm instanceof Array) {
+        highlightInFm = highlightInFm
       } else {
-        highlightKw = [highlightKw]
+        highlightInFm = [highlightInFm]
       }
-      new Notice("Show" + highlightKw);
+      console.log("Show: " + highlightInFm);
 
       const queries = this.settings.frontmatterHighlighter.queries
       const cssLenth = Object.keys(queries).length
-      const index = highlightKw.length > cssLenth ? cssLenth : highlightKw.length
+      const index = highlightInFm.length > cssLenth ? cssLenth : highlightInFm.length
       for (let i = 0; i < index; i++) {
-
         const className = Object.keys(queries)[i]
-        queries[className].query = highlightKw[i]
+        queries[className].query = highlightInFm[i]
         this.settings.staticHighlighter.queries[className] = queries[className]
         this.toBedeleteQuery.push(className)
-        new Notice("addded" + className + highlightKw[i]);  //todo
+        console.log(`addded:  - + ${className} + ${highlightInFm[i]}`);  //todo
       }
       this.updateStaticHighlighter()
-      await this.saveSettings();
+      // await this.saveSettings();
     }
   }
 

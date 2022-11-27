@@ -50,14 +50,14 @@ export class SettingTab extends PluginSettingTab {
 
     this.staticHighlightUI(this.plugin.settings.staticHighlighter, containerEl);
     
-    this.frontmatterUI(this.plugin.settings.frontmatterHighlighter, containerEl);
+    this.frontmatterHighlightUI(this.plugin.settings.frontmatterHighlighter, containerEl);
 
-    this.selectionUI(containerEl);
+    this.selectionHighlightUI(containerEl);
 
     this.ignoredWordUI(containerEl);
   }
 
-  private frontmatterUI(config: FrontmatterHighlightOptions, containerEl: HTMLElement) {
+  private frontmatterHighlightUI(config: FrontmatterHighlightOptions, containerEl: HTMLElement) {
     containerEl.createEl("h3", {
       text: "Frontmatter based Highlights",
     });
@@ -230,7 +230,7 @@ export class SettingTab extends PluginSettingTab {
       });
   }
 
-  private selectionUI(containerEl: HTMLElement) {
+  private selectionHighlightUI(containerEl: HTMLElement) {
     containerEl.createEl("h3", {
       text: "Selection Highlights",
     });
@@ -561,10 +561,7 @@ export class SettingTab extends PluginSettingTab {
       },
     });
   }
-
-
 };
-
 
 function editorFromTextArea(textarea: HTMLTextAreaElement, extensions: Extension) {
   let view = new EditorView({
