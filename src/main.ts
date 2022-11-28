@@ -43,10 +43,10 @@ export default class DynamicHighlightsPlugin extends Plugin {
   customCSS: Record<string, CustomCSS>;
   styleEl: HTMLElement;
   settingsTab: SettingTab;
-  toBedeleteQuery: string[];
+  // toBedeleteQuery: string[];
 
   async onload() {
-    this.toBedeleteQuery = []
+    // this.toBedeleteQuery = []
     await this.loadSettings();
 
     this.registerEvent(this.app.vault.on("modify", (modifiedFile: { path: any; }) => {
@@ -103,6 +103,11 @@ export default class DynamicHighlightsPlugin extends Plugin {
       }
       console.log("Show: " + highlightInFm);
 
+      Object.keys(this.settings.staticHighlighter.queries).forEach(key=>{
+        if (!this.settings.staticHighlighter.queryOrder.includes(key)) {
+          delete this.settings.staticHighlighter.queries[key];
+        }
+      })
       const queries = this.settings.frontmatterHighlighter.queries
       const cssLenth = Object.keys(queries).length
       const index = highlightInFm.length > cssLenth ? cssLenth : highlightInFm.length
@@ -110,7 +115,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
         const className = Object.keys(queries)[i]
         queries[className].query = highlightInFm[i]
         this.settings.staticHighlighter.queries[className] = queries[className]
-        this.toBedeleteQuery.push(className)
+        // this.toBedeleteQuery.push(className)
         console.log(`addded:  - + ${className} + ${highlightInFm[i]}`);  //todo
       }
       this.updateStaticHighlighter()
@@ -193,6 +198,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
     true
   );
   onunload() {
-    this.toBedeleteQuery.forEach(e => { delete this.settings.staticHighlighter.queries[e] })
+    // this.toBedeleteQuery.forEach(e => { delete this.settings.staticHighlighter.queries[e] })
   }
 }
