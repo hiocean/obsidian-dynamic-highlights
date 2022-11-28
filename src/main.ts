@@ -52,7 +52,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.registerEvent(this.app.vault.on("modify", (modifiedFile: { path: any; }) => {
       const activeFile = this.app.workspace.getActiveFile();
       if (activeFile && activeFile.path == modifiedFile.path) {
-        this.updateFrontmatter({ useCache: false });
+        this.updateFrontmatterHighlighter({ useCache: false });
       }
     }))
     // this.registerEvent(this.app.workspace.on('editor-change', () => {
@@ -60,11 +60,10 @@ export default class DynamicHighlightsPlugin extends Plugin {
     // }))
 
     this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
-      this.updateFrontmatter();
+      this.updateFrontmatterHighlighter();
     }))
 
 
-    // this.updateFrontmatter();
     this.settingsTab = new SettingTab(this.app, this);
     this.addSettingTab(this.settingsTab);
     addIcons();
@@ -77,7 +76,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.initCSS();
   }
 
-  async updateFrontmatter({ useCache = true }: { useCache?: boolean; } = {}): Promise<void> {
+  async updateFrontmatterHighlighter({ useCache = true }: { useCache?: boolean; } = {}): Promise<void> {
     if (!this.settings.frontmatterHighlighter.enableFrontmatterHighlight) return
     const currFile = this.app.workspace.getActiveFile()
     if (!currFile) return;

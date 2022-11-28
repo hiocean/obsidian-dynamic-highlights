@@ -72,6 +72,7 @@ export class SettingTab extends PluginSettingTab {
             config.enableFrontmatterHighlight = value;
             this.plugin.saveSettings();
             this.plugin.updateStaticHighlighter();
+            this.plugin.updateFrontmatterHighlighter();
           });
       });
     new Setting(containerEl).setName("Frontmatter keyword")
@@ -83,6 +84,7 @@ export class SettingTab extends PluginSettingTab {
           this.plugin.settings.frontmatterHighlighter.frontmatterHighlightKeywords = value;
           this.plugin.saveSettings();
           this.plugin.updateStaticHighlighter();
+          this.plugin.updateFrontmatterHighlighter();
         });
       });
 
@@ -354,6 +356,7 @@ export class SettingTab extends PluginSettingTab {
 
           await this.plugin.saveSettings();
           this.plugin.updateStaticHighlighter();
+          this.plugin.updateFrontmatterHighlighter();
           this.plugin.updateCustomCSS();
           this.plugin.updateStyles();
           this.display();
