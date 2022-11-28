@@ -22,10 +22,12 @@ import { FrontmatterHighlightOptions, markTypes } from "./settings";
 import { materialPalenight } from "../editor/theme-dark";
 import { basicLightTheme } from "../editor/theme-light";
 import { StaticHighlightOptions } from "src/highlighters/static";
+import { SearchQuery } from "./settings";
 
 export class SettingTab extends PluginSettingTab {
   plugin: DynamicHighlightsPlugin;
-  editor: EditorView;
+  fmEditor: EditorView;
+  staticEditor: EditorView;
   scope: Scope;
   pickrInstance: Pickr;
 
@@ -36,7 +38,9 @@ export class SettingTab extends PluginSettingTab {
   }
 
   hide() {
-    this.editor?.destroy();
+    this.fmEditor?.destroy();
+    this.staticEditor?.destroy();
+
     this.pickrInstance && this.pickrInstance.destroyAndRemove();
     // this.app.keymap.popScope(this.scope);
   }
@@ -45,11 +49,13 @@ export class SettingTab extends PluginSettingTab {
     // this.app.keymap.pushScope(this.scope);
     const { containerEl } = this;
     containerEl.empty();
+    containerEl.addClass("dynamic-highlights-settings");
+
 
     this.imExportUI(containerEl);
 
     this.staticHighlightUI(this.plugin.settings.staticHighlighter, containerEl);
-    
+
     this.frontmatterHighlightUI(this.plugin.settings.frontmatterHighlighter, containerEl);
 
     this.selectionHighlightUI(containerEl);
@@ -58,9 +64,7 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private frontmatterHighlightUI(config: FrontmatterHighlightOptions, containerEl: HTMLElement) {
-    containerEl.createEl("h3", {
-      text: "Frontmatter based Highlights",
-    });
+    containerEl.createEl("h3", { text: "Frontmatter based Highlights", });
 
     new Setting(containerEl)
       .setName("Enable frontmatter highlighter ")
@@ -73,7 +77,7 @@ export class SettingTab extends PluginSettingTab {
             this.plugin.updateStaticHighlighter();
           });
       });
-    
+
     new Setting(containerEl)
       .setName("Frontmatter keyword")
       .setDesc("The keyword in the front matter, default is 'highlight'.")
@@ -92,14 +96,17 @@ export class SettingTab extends PluginSettingTab {
       .setClass("highlighter-definition")
       .setDesc(`In this section you define highlighters based on front matter. Make sure to click the save button.`);
 
+    const classInput = this.classInputEl(defineQueryUI);
+    const colorWrapper = defineQueryUI.controlEl.createDiv("color-wrapper");
+    let pickrInstance: Pickr = this.colorWrapperEl(colorWrapper, classInput);
 
     const customCSSWrapper = defineQueryUI.controlEl.createDiv("custom-css-wrapper");
     customCSSWrapper.createSpan("setting-item-name").setText("Custom CSS");
     const customCSSEl = new TextAreaComponent(customCSSWrapper);
-    this.editor = editorFromTextArea(customCSSEl.inputEl, basicSetup);
+    this.fmEditor = editorFromTextArea(customCSSEl.inputEl, basicSetup);
     customCSSEl.inputEl.addClass("custom-css");
 
-    var id: number = Object.keys(config.queries).length ;
+    var id: number = Object.keys(config.queries).length;
     const className = `fm${String(id)}`
 
     const saveButton = new ButtonComponent(customCSSWrapper);
@@ -113,8 +120,8 @@ export class SettingTab extends PluginSettingTab {
         if (!config.queryOrder.includes(className)) {
           config.queryOrder.push(className);
         }
-        let customCss = this.editor.state.doc.toString();
-        customCss =customCss.replace(/\.([\w-]+)\s+{/gm, `.${className} {`)
+        let customCss = this.fmEditor.state.doc.toString();
+        customCss = customCss.replace(/\.([\w-]+)\s+{/gm, `.${className} {`)
         config.queries[className] = {
           class: className,
           color: "",
@@ -172,7 +179,7 @@ export class SettingTab extends PluginSettingTab {
               } else {
                 extensions.push(basicLightTheme);
               }
-              this.editor.setState(EditorState.create({ doc: options.css ? options.css : "", extensions: extensions }));
+              this.fmEditor.setState(EditorState.create({ doc: options.css ? options.css : "", extensions: extensions }));
 
               containerEl.scrollTop = 0;
             });
@@ -215,7 +222,17 @@ export class SettingTab extends PluginSettingTab {
     });
   }
 
-  
+
+  private classInputEl(defineQueryUI: Setting,
+    placeholder: string = "Highlighter name", ariaLabel: string = "Highlighter name",
+    addClass: string = "highlighter-name") {
+    const classInput = new TextComponent(defineQueryUI.controlEl);
+    classInput.setPlaceholder(placeholder);
+    classInput.inputEl.ariaLabel = ariaLabel;
+    classInput.inputEl.addClass(addClass);
+    return classInput;
+  }
+
   private ignoredWordUI(containerEl: HTMLElement) {
     new Setting(containerEl)
       .setName("Ignored words")
@@ -296,12 +313,7 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private staticHighlightUI(config: StaticHighlightOptions, containerEl: HTMLElement) {
-    containerEl
-      .createEl("h3", {
-        text: "Persistent Highlights",
-      })
-      .addClass("persistent-highlights");
-    containerEl.addClass("dynamic-highlights-settings");
+    containerEl.createEl("h3", { text: "Persistent Highlights", }).addClass("persistent-highlights");
 
     const defineQueryUI = new Setting(containerEl);
     defineQueryUI
@@ -312,61 +324,11 @@ export class SettingTab extends PluginSettingTab {
         Make sure to click the save button.`
       );
 
-    const classInput = new TextComponent(defineQueryUI.controlEl);
-    classInput.setPlaceholder("Highlighter name");
-    classInput.inputEl.ariaLabel = "Highlighter name";
-    classInput.inputEl.addClass("highlighter-name");
+    const classInput = this.classInputEl(defineQueryUI);
 
     const colorWrapper = defineQueryUI.controlEl.createDiv("color-wrapper");
 
-    let pickrInstance: Pickr;
-    const colorPicker = new ButtonComponent(colorWrapper);
-
-    colorPicker.setClass("highlightr-color-picker").then(() => {
-      this.pickrInstance = pickrInstance = new Pickr({
-        el: colorPicker.buttonEl,
-        container: colorWrapper,
-        theme: "nano",
-        defaultRepresentation: "HEXA",
-        default: "#42188038",
-        comparison: false,
-        components: {
-          preview: true,
-          opacity: true,
-          hue: true,
-          interaction: {
-            hex: true,
-            rgba: false,
-            hsla: true,
-            hsva: false,
-            cmyk: false,
-            input: true,
-            clear: true,
-            cancel: true,
-            save: true,
-          },
-        },
-      });
-      colorWrapper.querySelector(".pcr-button")!.ariaLabel = "Background color picker";
-
-      pickrInstance
-        .on("clear", (instance: Pickr) => {
-          instance.hide();
-          classInput.inputEl.setAttribute("style", `background-color: none; color: var(--text-normal);`);
-        })
-        .on("cancel", (instance: Pickr) => {
-          instance.hide();
-        })
-        .on("change", (color: Pickr.HSVaColor) => {
-          let colorHex = color?.toHEXA().toString() || "";
-          let newColor;
-          colorHex && colorHex.length == 6 ? (newColor = `${colorHex}A6`) : (newColor = colorHex);
-          classInput.inputEl.setAttribute("style", `background-color: ${newColor}; color: var(--text-normal);`);
-        })
-        .on("save", (color: Pickr.HSVaColor, instance: Pickr) => {
-          instance.hide();
-        });
-    });
+    let pickrInstance: Pickr = this.colorWrapperEl(colorWrapper, classInput);
 
     const queryWrapper = defineQueryUI.controlEl.createDiv("query-wrapper");
     const queryInput = new TextComponent(queryWrapper);
@@ -419,9 +381,57 @@ export class SettingTab extends PluginSettingTab {
     const customCSSWrapper = defineQueryUI.controlEl.createDiv("custom-css-wrapper");
     customCSSWrapper.createSpan("setting-item-name").setText("Custom CSS");
     const customCSSEl = new TextAreaComponent(customCSSWrapper);
-    this.editor = editorFromTextArea(customCSSEl.inputEl, basicSetup);
+
+    let staticEditor = editorFromTextArea(customCSSEl.inputEl, basicSetup);
     customCSSEl.inputEl.addClass("custom-css");
 
+    let enabledMarks = Object.entries(marks)
+      .map(([type, item]) => item.component.getValue() && type)
+      .filter(m => m);
+    function saveCallback() {
+      return {
+        class: classInput.inputEl.value.replace(/ /g, "-"),
+        color: pickrInstance.getSelectedColor()?.toHEXA().toString() || "",
+        regex: queryTypeInput.getValue(),
+        query: queryInput.inputEl.value,
+        mark: enabledMarks,
+        css: staticEditor.state.doc.toString(),
+      };
+      // console.log("class name is :" + aquery.class)
+    }
+
+    this.saveButtonEl({ config, queryWrapper, saveCallback });
+
+    const highlightersContainer = this.highlightersContainerEl({ containerEl, config, editCallback });
+
+    function editCallback(highlighter: string): void {
+      let options = config.queries[highlighter];
+      classInput.inputEl.value = highlighter;
+      pickrInstance.setColor(options.color);
+      queryInput.inputEl.value = options.query;
+      queryTypeInput.setValue(options.regex);
+      let extensions = basicSetup;
+      if (document.body.hasClass("theme-dark")) {
+        extensions.push(materialPalenight);
+      } else {
+        extensions.push(basicLightTheme);
+      }
+      staticEditor.setState(EditorState.create({ doc: options.css ? options.css : "", extensions: extensions }));
+      if (options?.mark) {
+        Object.entries(marks).map(([key, value]) => options.mark!.includes(key) ? value.component.setValue(true) : value.component.setValue(false)
+        );
+      } else {
+        Object.entries(marks).map(([key, value]) => key === "match" ? value.component.setValue(true) : value.component.setValue(false)
+        );
+      }
+    }
+
+    let sortableEl = this.sortableContainerEl(highlightersContainer, config);
+  }
+
+
+
+  private saveButtonEl({ config, queryWrapper, saveCallback }: { config: StaticHighlightOptions; queryWrapper: HTMLDivElement; saveCallback: () => SearchQuery; }): ButtonComponent {
     const saveButton = new ButtonComponent(queryWrapper);
     saveButton
       .setClass("action-button")
@@ -430,35 +440,22 @@ export class SettingTab extends PluginSettingTab {
       .setIcon("save")
       .setTooltip("Save")
       .onClick(async (buttonEl: any) => {
-        let className = classInput.inputEl.value.replace(/ /g, "-");
-        let hexValue = pickrInstance.getSelectedColor()?.toHEXA().toString();
-        let queryValue = queryInput.inputEl.value;
-        let queryTypeValue = queryTypeInput.getValue();
-        let customCss = this.editor.state.doc.toString();
+        const aquery = saveCallback();
+        const className = aquery.class
 
         if (className) {
           if (!config.queryOrder.includes(className)) {
             config.queryOrder.push(className);
           }
-          let enabledMarks = Object.entries(marks)
-            .map(([type, item]) => item.component.getValue() && type)
-            .filter(m => m);
-          config.queries[className] = {
-            class: className,
-            color: hexValue ? hexValue : "",
-            regex: queryTypeValue,
-            query: queryValue,
-            mark: enabledMarks,
-            css: customCss,
-          };
+          config.queries[className] = aquery
           await this.plugin.saveSettings();
           this.plugin.updateStaticHighlighter();
           this.plugin.updateCustomCSS();
           this.plugin.updateStyles();
           this.display();
-        } else if (className && !hexValue) {
+        } else if (className && !aquery.color) {
           new Notice("Highlighter hex code missing");
-        } else if (!className && hexValue) {
+        } else if (!className && aquery.color) {
           new Notice("Highlighter name missing");
         } else if (!/^-?[_a-zA-Z]+[_a-zA-Z0-9-]*$/.test(className)) {
           new Notice("Highlighter name missing");
@@ -466,12 +463,15 @@ export class SettingTab extends PluginSettingTab {
           new Notice("Highlighter values missing");
         }
       });
+    return saveButton
+  }
 
-    const highlightersContainer = containerEl.createEl("div", {
-      cls: "highlighter-container",
-    });
+  private highlightersContainerEl({ containerEl, config, editCallback }: {
+    containerEl: HTMLElement; config: StaticHighlightOptions; editCallback: (highlighter: string) => void
+  }): HTMLDivElement {
+    const highlightersContainer = containerEl.createEl("div", { cls: "highlighter-container", });
 
-    this.plugin.settings.staticHighlighter.queryOrder.forEach(highlighter => {
+    config.queryOrder.forEach(highlighter => {
       const { color, query, regex } = config.queries[highlighter];
       const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill=${color} stroke=${color} stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M20.707 5.826l-3.535-3.533a.999.999 0 0 0-1.408-.006L7.096 10.82a1.01 1.01 0 0 0-.273.488l-1.024 4.437L4 18h2.828l1.142-1.129l3.588-.828c.18-.042.345-.133.477-.262l8.667-8.535a1 1 0 0 0 .005-1.42zm-9.369 7.833l-2.121-2.12l7.243-7.131l2.12 2.12l-7.242 7.131zM4 20h16v2H4z"/></svg>`;
       const settingItem = highlightersContainer.createEl("div");
@@ -500,27 +500,8 @@ export class SettingTab extends PluginSettingTab {
             .setClass("mod-cta")
             .setIcon("pencil")
             .setTooltip("Edit")
-            .onClick(async (evt) => {
-              let options = config.queries[highlighter];
-              classInput.inputEl.value = highlighter;
-              pickrInstance.setColor(options.color);
-              queryInput.inputEl.value = options.query;
-              pickrInstance.setColor(options.color);
-              queryTypeInput.setValue(options.regex);
-              let extensions = basicSetup;
-              if (document.body.hasClass("theme-dark")) {
-                extensions.push(materialPalenight);
-              } else {
-                extensions.push(basicLightTheme);
-              }
-              this.editor.setState(EditorState.create({ doc: options.css ? options.css : "", extensions: extensions }));
-              if (options?.mark) {
-                Object.entries(marks).map(([key, value]) => options.mark!.includes(key) ? value.component.setValue(true) : value.component.setValue(false)
-                );
-              } else {
-                Object.entries(marks).map(([key, value]) => key === "match" ? value.component.setValue(true) : value.component.setValue(false)
-                );
-              }
+            .onClick(() => {
+              editCallback(highlighter);
               containerEl.scrollTop = 0;
             });
         })
@@ -542,7 +523,65 @@ export class SettingTab extends PluginSettingTab {
             });
         });
     });
-    let sortableEl = Sortable.create(highlightersContainer, {
+    return highlightersContainer;
+
+
+  }
+
+  private colorWrapperEl(colorWrapper: HTMLDivElement, classInput: TextComponent) {
+    let pickrInstance: Pickr;
+    const colorPicker = new ButtonComponent(colorWrapper);
+
+    colorPicker.setClass("highlightr-color-picker").then(() => {
+      this.pickrInstance = pickrInstance = new Pickr({
+        el: colorPicker.buttonEl,
+        container: colorWrapper,
+        theme: "nano",
+        defaultRepresentation: "HEXA",
+        default: "#42188038",
+        comparison: false,
+        components: {
+          preview: true,
+          opacity: true,
+          hue: true,
+          interaction: {
+            hex: true,
+            rgba: false,
+            hsla: true,
+            hsva: false,
+            cmyk: false,
+            input: true,
+            clear: true,
+            cancel: true,
+            save: true,
+          },
+        },
+      });
+      colorWrapper.querySelector(".pcr-button")!.ariaLabel = "Background color picker";
+
+      pickrInstance
+        .on("clear", (instance: Pickr) => {
+          instance.hide();
+          classInput.inputEl.setAttribute("style", `background-color: none; color: var(--text-normal);`);
+        })
+        .on("cancel", (instance: Pickr) => {
+          instance.hide();
+        })
+        .on("change", (color: Pickr.HSVaColor) => {
+          let colorHex = color?.toHEXA().toString() || "";
+          let newColor;
+          colorHex && colorHex.length == 6 ? (newColor = `${colorHex}A6`) : (newColor = colorHex);
+          classInput.inputEl.setAttribute("style", `background-color: ${newColor}; color: var(--text-normal);`);
+        })
+        .on("save", (color: Pickr.HSVaColor, instance: Pickr) => {
+          instance.hide();
+        });
+    });
+    return pickrInstance;
+  }
+
+  private sortableContainerEl(highlightersContainer: HTMLDivElement, config: StaticHighlightOptions) {
+    return Sortable.create(highlightersContainer, {
       animation: 500,
       ghostClass: "highlighter-sortable-ghost",
       chosenClass: "highlighter-sortable-chosen",
@@ -556,14 +595,14 @@ export class SettingTab extends PluginSettingTab {
         const arrayResult = config.queryOrder;
         const [removed] = arrayResult.splice(command.oldIndex!, 1);
         arrayResult.splice(command.newIndex!, 0, removed);
-        this.plugin.settings.staticHighlighter.queryOrder = arrayResult;
+        config.queryOrder = arrayResult;
         this.plugin.saveSettings();
       },
     });
   }
 };
 
-function editorFromTextArea(textarea: HTMLTextAreaElement, extensions: Extension) {
+function editorFromTextArea(textarea: HTMLTextAreaElement, extensions: Extension): EditorView {
   let view = new EditorView({
     state: EditorState.create({ doc: textarea.value, extensions }),
   });

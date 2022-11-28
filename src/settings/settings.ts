@@ -2,7 +2,7 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-11-25 17:45:57
+ * @LastEditTime: 2022-11-27 19:34:55
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
@@ -24,7 +24,7 @@ export interface CSSSettings {
   [key: string]: SettingValue;
 }
 
-interface SearchQuery {
+export interface SearchQuery {
   query: string;
   class: string;
   color: string | null;
