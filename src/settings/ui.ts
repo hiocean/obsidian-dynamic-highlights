@@ -34,7 +34,7 @@ export class SettingTab extends PluginSettingTab {
   constructor(app: App, plugin: DynamicHighlightsPlugin) {
     super(app, plugin);
     this.plugin = plugin;
-    // this.scope = new Scope(app.scope);
+
   }
 
   hide() {
@@ -42,15 +42,14 @@ export class SettingTab extends PluginSettingTab {
     this.staticEditor?.destroy();
 
     this.pickrInstance && this.pickrInstance.destroyAndRemove();
-    // this.app.keymap.popScope(this.scope);
+
   }
 
   display(): void {
-    // this.app.keymap.pushScope(this.scope);
+
     const { containerEl } = this;
     containerEl.empty();
     containerEl.addClass("dynamic-highlights-settings");
-
 
     this.imExportUI(containerEl);
 
@@ -66,8 +65,8 @@ export class SettingTab extends PluginSettingTab {
   private frontmatterHighlightUI(config: FrontmatterHighlightOptions, containerEl: HTMLElement) {
     containerEl.createEl("h3", { text: "Frontmatter based Highlights", });
 
-    new Setting(containerEl)
-      .setName("Enable frontmatter highlighter ")
+    const defaultfmkw = this.plugin.settings.frontmatterHighlighter.frontmatterHighlightKeywords
+    new Setting(containerEl).setName("Enable frontmatter highlighter ")
       .addToggle(toggle => {
         toggle
           .setValue(config.enableFrontmatterHighlight)
@@ -77,13 +76,11 @@ export class SettingTab extends PluginSettingTab {
             this.plugin.updateStaticHighlighter();
           });
       });
-
-    new Setting(containerEl)
-      .setName("Frontmatter keyword")
-      .setDesc("The keyword in the front matter, default is 'highlight'.")
+    new Setting(containerEl).setName("Frontmatter keyword")
+      .setDesc(`The keyword in the front matter, default is '${defaultfmkw}'.`)
       .addText(text => {
         text.inputEl.type = "string";
-        text.setPlaceholder(this.plugin.settings.frontmatterHighlighter.frontmatterHighlightKeywords)
+        text.setPlaceholder(defaultfmkw)
         text.setValue("").onChange(value => {
           this.plugin.settings.frontmatterHighlighter.frontmatterHighlightKeywords = value;
           this.plugin.saveSettings();
@@ -91,146 +88,54 @@ export class SettingTab extends PluginSettingTab {
         });
       });
 
-    const defineQueryUI = new Setting(containerEl);
-    defineQueryUI.setName("Define Frontmatter highlighters")
-      .setClass("highlighter-definition")
-      .setDesc(`In this section you define highlighters based on front matter. Make sure to click the save button.`);
+    const fmDefineQueryUI = new Setting(containerEl);
+    fmDefineQueryUI.setName("Define Frontmatter highlighters").setClass("highlighter-definition").setDesc(`In this section you define highlighters based on front matter.       Thus, only css is needed, name is optional.`);
 
-    const classInput = this.classInputEl(defineQueryUI);
-    const colorWrapper = defineQueryUI.controlEl.createDiv("color-wrapper");
-    let pickrInstance: Pickr = this.colorWrapperEl(colorWrapper, classInput);
+    const defaultClassName = this.getDefaultFmCSSName(config);
 
-    const customCSSWrapper = defineQueryUI.controlEl.createDiv("custom-css-wrapper");
-    customCSSWrapper.createSpan("setting-item-name").setText("Custom CSS");
-    const customCSSEl = new TextAreaComponent(customCSSWrapper);
-    this.fmEditor = editorFromTextArea(customCSSEl.inputEl, basicSetup);
-    customCSSEl.inputEl.addClass("custom-css");
+    const classInput = this.inputUI({ parent: fmDefineQueryUI.controlEl, placeholder: defaultClassName });
+    const { customCSSWrapper, editor } = this.customCSSUI(fmDefineQueryUI);
+    this.fmEditor = editor;
 
-    var id: number = Object.keys(config.queries).length;
-    const className = `fm${String(id)}`
-
-    const saveButton = new ButtonComponent(customCSSWrapper);
-    saveButton
-      .setClass("action-button")
-      .setClass("action-button-save")
-      .setClass("mod-cta")
-      .setIcon("save")
-      .setTooltip("Save")
-      .onClick(async (buttonEl: any) => {
-        if (!config.queryOrder.includes(className)) {
-          config.queryOrder.push(className);
+    this.saveButtonEl({
+      config, parentEl: customCSSWrapper, callbackGettingQuery:
+        () => {
+          let customCss = this.fmEditor.state.doc.toString();
+          const className: string = classInput.inputEl.value.replace(/ /g, "-") || defaultClassName
+          customCss = customCss.replace(/\.([\w-]+)\s+{/gm, `.${className} {`)
+          return {
+            class: className,
+            color: "",
+            regex: true,
+            query: "",
+            css: customCss,
+          };
         }
-        let customCss = this.fmEditor.state.doc.toString();
-        customCss = customCss.replace(/\.([\w-]+)\s+{/gm, `.${className} {`)
-        config.queries[className] = {
-          class: className,
-          color: "",
-          regex: true,
-          query: "",
-          css: customCss,
-        };
-        await this.plugin.saveSettings();
-        this.plugin.updateStaticHighlighter();
-        this.plugin.updateCustomCSS();
-        this.plugin.updateStyles();
-        this.display();
+    });
+
+    const highlightersContainer = this.highlightersContainerEl(
+      {
+        config, containerEl, editCallback:
+          (highlighter: string): void => {
+            let options = config.queries[highlighter];
+            classInput.inputEl.value = highlighter;
+            let extensions = basicSetup;
+            if (document.body.hasClass("theme-dark")) {
+              extensions.push(materialPalenight);
+            } else {
+              extensions.push(basicLightTheme);
+            }
+            this.fmEditor.setState(EditorState.create({ doc: options.css ? options.css : "", extensions: extensions }));
+          }
       });
 
-    const highlightersContainer = containerEl.createEl("div", {
-      cls: "highlighter-container",
-    });
-
-    this.plugin.settings.frontmatterHighlighter.queryOrder.forEach(highlighter => {
-      const { color, regex } = config.queries[highlighter];
-      const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill=${color} stroke=${color} stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M20.707 5.826l-3.535-3.533a.999.999 0 0 0-1.408-.006L7.096 10.82a1.01 1.01 0 0 0-.273.488l-1.024 4.437L4 18h2.828l1.142-1.129l3.588-.828c.18-.042.345-.133.477-.262l8.667-8.535a1 1 0 0 0 .005-1.42zm-9.369 7.833l-2.121-2.12l7.243-7.131l2.12 2.12l-7.242 7.131zM4 20h16v2H4z"/></svg>`;
-      const settingItem = highlightersContainer.createEl("div");
-      settingItem.id = "dh-" + highlighter;
-      settingItem.addClass("highlighter-item-draggable");
-      const dragIcon = settingItem.createEl("span");
-      const colorIcon = settingItem.createEl("span");
-      dragIcon.addClass("highlighter-setting-icon", "highlighter-setting-icon-drag");
-      colorIcon.addClass("highlighter-setting-icon");
-      colorIcon.innerHTML = icon;
-      setIcon(dragIcon, "three-horizontal-bars");
-      dragIcon.ariaLabel = "Drag to rearrange";
-      let desc: string[] = [];
-
-      desc.push(regex ? "search expression: " : "search term: ");
-      desc.push("css class: " + highlighter);
-      desc.push("color: " + config.queries[highlighter].color);
-
-      new Setting(settingItem)
-        .setClass("highlighter-details")
-        .setName(highlighter)
-        .setDesc(desc.join(" | "))
-        .addButton(button => {
-          button
-            .setClass("action-button")
-            .setClass("action-button-edit")
-            .setClass("mod-cta")
-            .setIcon("pencil")
-            .setTooltip("Edit")
-            .onClick(async (evt) => {
-              let options = config.queries[highlighter];
-
-              let extensions = basicSetup;
-              if (document.body.hasClass("theme-dark")) {
-                extensions.push(materialPalenight);
-              } else {
-                extensions.push(basicLightTheme);
-              }
-              this.fmEditor.setState(EditorState.create({ doc: options.css ? options.css : "", extensions: extensions }));
-
-              containerEl.scrollTop = 0;
-            });
-        })
-        .addButton(button => {
-          button
-            .setClass("action-button")
-            .setClass("action-button-delete")
-            .setIcon("trash")
-            .setClass("mod-warning")
-            .setTooltip("Remove")
-            .onClick(async () => {
-              new Notice(`${highlighter} highlight deleted`);
-              delete config.queries[highlighter];
-              config.queryOrder.remove(highlighter);
-              await this.plugin.saveSettings();
-              this.plugin.updateStyles();
-              this.plugin.updateStaticHighlighter();
-              highlightersContainer.querySelector(`#dh-${highlighter}`)!.detach();
-            });
-        });
-    });
-    let sortableEl = Sortable.create(highlightersContainer, {
-      animation: 500,
-      ghostClass: "highlighter-sortable-ghost",
-      chosenClass: "highlighter-sortable-chosen",
-      dragClass: "highlighter-sortable-drag",
-      handle: ".highlighter-setting-icon-drag",
-      dragoverBubble: true,
-      forceFallback: true,
-      fallbackClass: "highlighter-sortable-fallback",
-      easing: "cubic-bezier(1, 0, 0, 1)",
-      onSort: command => {
-        const arrayResult = config.queryOrder;
-        const [removed] = arrayResult.splice(command.oldIndex!, 1);
-        arrayResult.splice(command.newIndex!, 0, removed);
-        this.plugin.settings.staticHighlighter.queryOrder = arrayResult;
-        this.plugin.saveSettings();
-      },
-    });
+    this.sortableContainerEl(highlightersContainer, config);
   }
 
-
-  private classInputEl(defineQueryUI: Setting,
-    placeholder: string = "Highlighter name", ariaLabel: string = "Highlighter name",
-    addClass: string = "highlighter-name") {
-    const classInput = new TextComponent(defineQueryUI.controlEl);
-    classInput.setPlaceholder(placeholder);
-    classInput.inputEl.ariaLabel = ariaLabel;
-    classInput.inputEl.addClass(addClass);
-    return classInput;
+  private getDefaultFmCSSName(config: FrontmatterHighlightOptions): string {
+    var id: number = Object.keys(config.queries).length;
+    const defaultClassName = `frontmattercssNo${String(id)}`;
+    return defaultClassName;
   }
 
   private ignoredWordUI(containerEl: HTMLElement) {
@@ -315,25 +220,16 @@ export class SettingTab extends PluginSettingTab {
   private staticHighlightUI(config: StaticHighlightOptions, containerEl: HTMLElement) {
     containerEl.createEl("h3", { text: "Persistent Highlights", }).addClass("persistent-highlights");
 
-    const defineQueryUI = new Setting(containerEl);
-    defineQueryUI
-      .setName("Define Common highlighters")
-      .setClass("highlighter-definition")
-      .setDesc(
-        `In this section you define a unique highlighter name along with the css.
-        Make sure to click the save button.`
-      );
+    const staticDefineQueryUI = new Setting(containerEl);
+    staticDefineQueryUI.setName("Define Common highlighters").setClass("highlighter-definition").setDesc(`In this section you define a unique highlighter name along with the css.        Make sure to click the save button.`);
 
-    const classInput = this.classInputEl(defineQueryUI);
+    const classInput = this.inputUI({ parent: staticDefineQueryUI.controlEl });
 
-    const colorWrapper = defineQueryUI.controlEl.createDiv("color-wrapper");
-
+    const colorWrapper = staticDefineQueryUI.controlEl.createDiv("color-wrapper");
     let pickrInstance: Pickr = this.colorWrapperEl(colorWrapper, classInput);
 
-    const queryWrapper = defineQueryUI.controlEl.createDiv("query-wrapper");
-    const queryInput = new TextComponent(queryWrapper);
-    queryInput.setPlaceholder("Search term");
-    queryInput.inputEl.addClass("highlighter-settings-query");
+    const queryWrapper = staticDefineQueryUI.controlEl.createDiv("query-wrapper");
+    const queryInput = this.inputUI({ parent: queryWrapper, placeholder: "search" });
 
     const queryTypeInput = new ToggleComponent(queryWrapper);
     queryTypeInput.toggleEl.addClass("highlighter-settings-regex");
@@ -376,71 +272,99 @@ export class SettingTab extends PluginSettingTab {
       }
       return types;
     };
-    const marks = buildMarkerTypes(defineQueryUI.controlEl);
-
-    const customCSSWrapper = defineQueryUI.controlEl.createDiv("custom-css-wrapper");
-    customCSSWrapper.createSpan("setting-item-name").setText("Custom CSS");
-    const customCSSEl = new TextAreaComponent(customCSSWrapper);
-
-    let staticEditor = editorFromTextArea(customCSSEl.inputEl, basicSetup);
-    customCSSEl.inputEl.addClass("custom-css");
-
+    const marks = buildMarkerTypes(staticDefineQueryUI.controlEl);
     let enabledMarks = Object.entries(marks)
       .map(([type, item]) => item.component.getValue() && type)
       .filter(m => m);
-    function saveCallback() {
-      return {
-        class: classInput.inputEl.value.replace(/ /g, "-"),
-        color: pickrInstance.getSelectedColor()?.toHEXA().toString() || "",
-        regex: queryTypeInput.getValue(),
-        query: queryInput.inputEl.value,
-        mark: enabledMarks,
-        css: staticEditor.state.doc.toString(),
-      };
-      // console.log("class name is :" + aquery.class)
-    }
 
-    this.saveButtonEl({ config, queryWrapper, saveCallback });
+    const { customCSSWrapper, editor } = this.customCSSUI(staticDefineQueryUI);
+    this.staticEditor = editor;
 
-    const highlightersContainer = this.highlightersContainerEl({ containerEl, config, editCallback });
-
-    function editCallback(highlighter: string): void {
-      let options = config.queries[highlighter];
-      classInput.inputEl.value = highlighter;
-      pickrInstance.setColor(options.color);
-      queryInput.inputEl.value = options.query;
-      queryTypeInput.setValue(options.regex);
-      let extensions = basicSetup;
-      if (document.body.hasClass("theme-dark")) {
-        extensions.push(materialPalenight);
-      } else {
-        extensions.push(basicLightTheme);
+    this.saveButtonEl({
+      config, parentEl:customCSSWrapper, callbackGettingQuery: () => {
+        return {
+          class: classInput.inputEl.value.replace(/ /g, "-"),
+          color: pickrInstance.getSelectedColor()?.toHEXA().toString() || "",
+          regex: queryTypeInput.getValue(),
+          query: queryInput.inputEl.value,
+          mark: enabledMarks,
+          css: this.staticEditor.state.doc.toString(),
+        };
+        // console.log("class name is :" + aquery.class)
       }
-      staticEditor.setState(EditorState.create({ doc: options.css ? options.css : "", extensions: extensions }));
-      if (options?.mark) {
-        Object.entries(marks).map(([key, value]) => options.mark!.includes(key) ? value.component.setValue(true) : value.component.setValue(false)
-        );
-      } else {
-        Object.entries(marks).map(([key, value]) => key === "match" ? value.component.setValue(true) : value.component.setValue(false)
-        );
-      }
-    }
+    });
 
-    let sortableEl = this.sortableContainerEl(highlightersContainer, config);
+    const highlightersContainer = this.highlightersContainerEl({
+      containerEl, config, editCallback: (highlighter: string): void => {
+        let options = config.queries[highlighter];
+        classInput.inputEl.value = highlighter;
+        pickrInstance.setColor(options.color);
+        queryInput.inputEl.value = options.query;
+        queryTypeInput.setValue(options.regex);
+        let extensions = basicSetup;
+        if (document.body.hasClass("theme-dark")) {
+          extensions.push(materialPalenight);
+        } else {
+          extensions.push(basicLightTheme);
+        }
+        this.staticEditor.setState(EditorState.create({ doc: options.css ? options.css : "", extensions: extensions }));
+        if (options?.mark) {
+          Object.entries(marks).map(([key, value]) => options.mark!.includes(key) ? value.component.setValue(true) : value.component.setValue(false)
+          );
+        } else {
+          Object.entries(marks).map(([key, value]) => key === "match" ? value.component.setValue(true) : value.component.setValue(false)
+          );
+        }
+      }
+    });
+
+
+    this.sortableContainerEl(highlightersContainer, config);
   }
 
 
 
-  private saveButtonEl({ config, queryWrapper, saveCallback }: { config: StaticHighlightOptions; queryWrapper: HTMLDivElement; saveCallback: () => SearchQuery; }): ButtonComponent {
-    const saveButton = new ButtonComponent(queryWrapper);
+  private inputUI({ parent,
+    placeholder = "Highlighter name",
+    ariaLabel = "",
+    addClass = "highlighter-name" }: {
+      parent: HTMLDivElement | HTMLElement;
+      placeholder?: string;
+      ariaLabel?: string;
+      addClass?: string;
+    }): TextComponent {
+    const newInput = new TextComponent(parent);
+    newInput.setPlaceholder(placeholder);
+    ariaLabel = ariaLabel || placeholder
+    newInput.inputEl.ariaLabel = ariaLabel;
+    newInput.inputEl.addClass(addClass);
+    return newInput;
+  }
+
+  private customCSSUI(defineQueryUI: Setting): { customCSSWrapper: HTMLDivElement; editor: EditorView; } {
+    const customCSSWrapper = defineQueryUI.controlEl.createDiv("custom-css-wrapper");
+    customCSSWrapper.createSpan("setting-item-name").setText("Custom CSS");
+    const customCSSEl = new TextAreaComponent(customCSSWrapper);
+
+    const editor = editorFromTextArea(customCSSEl.inputEl, basicSetup);
+    customCSSEl.inputEl.addClass("custom-css");
+    return { customCSSWrapper, editor };
+  }
+
+  private saveButtonEl({ config,  parentEl, callbackGettingQuery }: {
+    config: StaticHighlightOptions | FrontmatterHighlightOptions;
+    parentEl: HTMLDivElement;
+    callbackGettingQuery: () => SearchQuery;
+  }): ButtonComponent {
+    const saveButton = new ButtonComponent(parentEl);
     saveButton
       .setClass("action-button")
       .setClass("action-button-save")
       .setClass("mod-cta")
       .setIcon("save")
       .setTooltip("Save")
-      .onClick(async (buttonEl: any) => {
-        const aquery = saveCallback();
+      .onClick(async () => {
+        const aquery = callbackGettingQuery();
         const className = aquery.class
 
         if (className) {
@@ -448,6 +372,7 @@ export class SettingTab extends PluginSettingTab {
             config.queryOrder.push(className);
           }
           config.queries[className] = aquery
+
           await this.plugin.saveSettings();
           this.plugin.updateStaticHighlighter();
           this.plugin.updateCustomCSS();
@@ -466,8 +391,9 @@ export class SettingTab extends PluginSettingTab {
     return saveButton
   }
 
-  private highlightersContainerEl({ containerEl, config, editCallback }: {
-    containerEl: HTMLElement; config: StaticHighlightOptions; editCallback: (highlighter: string) => void
+  private highlightersContainerEl({ config, containerEl, editCallback }: {
+    config: StaticHighlightOptions; containerEl: HTMLElement;
+    editCallback: (highlighter: string) => void
   }): HTMLDivElement {
     const highlightersContainer = containerEl.createEl("div", { cls: "highlighter-container", });
 
@@ -502,7 +428,7 @@ export class SettingTab extends PluginSettingTab {
             .setTooltip("Edit")
             .onClick(() => {
               editCallback(highlighter);
-              containerEl.scrollTop = 0;
+              // containerEl.scrollTop = 0;
             });
         })
         .addButton(button => {
@@ -524,8 +450,6 @@ export class SettingTab extends PluginSettingTab {
         });
     });
     return highlightersContainer;
-
-
   }
 
   private colorWrapperEl(colorWrapper: HTMLDivElement, classInput: TextComponent) {
@@ -580,7 +504,8 @@ export class SettingTab extends PluginSettingTab {
     return pickrInstance;
   }
 
-  private sortableContainerEl(highlightersContainer: HTMLDivElement, config: StaticHighlightOptions) {
+  private sortableContainerEl(highlightersContainer: HTMLDivElement,
+    config: StaticHighlightOptions): Sortable {
     return Sortable.create(highlightersContainer, {
       animation: 500,
       ghostClass: "highlighter-sortable-ghost",
