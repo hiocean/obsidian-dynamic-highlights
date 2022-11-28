@@ -18,7 +18,7 @@ import { basicSetup } from "src/editor/extensions";
 import DynamicHighlightsPlugin from "../main";
 import { ExportModal } from "./export";
 import { ImportModal } from "./import";
-import { FrontmatterHighlightOptions, markTypes } from "./settings";
+import { FrontmatterHighlightOptions, MarkItems, MarkTypes, markTypes } from "./settings";
 import { materialPalenight } from "../editor/theme-dark";
 import { basicLightTheme } from "../editor/theme-light";
 import { StaticHighlightOptions } from "src/highlighters/static";
@@ -245,8 +245,6 @@ export class SettingTab extends PluginSettingTab {
       }
     });
 
-    type MarkTypes = Record<markTypes, { description: string; defaultState: boolean; }>;
-    type MarkItems = Partial<Record<markTypes, { element: HTMLElement; component: ToggleComponent; }>>;
     const buildMarkerTypes = (parentEl: HTMLElement) => {
       const types: MarkItems = {};
       const marks: MarkTypes = {
@@ -271,17 +269,20 @@ export class SettingTab extends PluginSettingTab {
         };
       }
       return types;
-    };
+    }
+
     const marks = buildMarkerTypes(staticDefineQueryUI.controlEl);
-    let enabledMarks = Object.entries(marks)
-      .map(([type, item]) => item.component.getValue() && type)
-      .filter(m => m);
+    console.log(marks)
+
 
     const { customCSSWrapper, editor } = this.customCSSUI(staticDefineQueryUI);
     this.staticEditor = editor;
 
     this.saveButtonEl({
-      config, parentEl:customCSSWrapper, callbackGettingQuery: () => {
+      config, parentEl: customCSSWrapper, callbackGettingQuery: () => {
+        let enabledMarks = Object.entries(marks)
+          .map(([type, item]) => item.component.getValue() && type)
+          .filter(m => m);
         return {
           class: classInput.inputEl.value.replace(/ /g, "-"),
           color: pickrInstance.getSelectedColor()?.toHEXA().toString() || "",
@@ -351,7 +352,7 @@ export class SettingTab extends PluginSettingTab {
     return { customCSSWrapper, editor };
   }
 
-  private saveButtonEl({ config,  parentEl, callbackGettingQuery }: {
+  private saveButtonEl({ config, parentEl, callbackGettingQuery }: {
     config: StaticHighlightOptions | FrontmatterHighlightOptions;
     parentEl: HTMLDivElement;
     callbackGettingQuery: () => SearchQuery;
