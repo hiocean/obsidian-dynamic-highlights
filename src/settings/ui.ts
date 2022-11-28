@@ -34,21 +34,19 @@ export class SettingTab extends PluginSettingTab {
   constructor(app: App, plugin: DynamicHighlightsPlugin) {
     super(app, plugin);
     this.plugin = plugin;
-
   }
 
   hide() {
     this.fmEditor?.destroy();
     this.staticEditor?.destroy();
-
     this.pickrInstance && this.pickrInstance.destroyAndRemove();
-
   }
 
   display(): void {
 
     const { containerEl } = this;
     containerEl.empty();
+
     containerEl.addClass("dynamic-highlights-settings");
 
     this.imExportUI(containerEl);
@@ -94,6 +92,7 @@ export class SettingTab extends PluginSettingTab {
     const defaultClassName = this.getDefaultFmCSSName(config);
 
     const classInput = this.inputUI({ parent: fmDefineQueryUI.controlEl, placeholder: defaultClassName });
+    
     const { customCSSWrapper, editor } = this.customCSSUI(fmDefineQueryUI);
     this.fmEditor = editor;
 
@@ -228,51 +227,7 @@ export class SettingTab extends PluginSettingTab {
     const colorWrapper = staticDefineQueryUI.controlEl.createDiv("color-wrapper");
     let pickrInstance: Pickr = this.colorWrapperEl(colorWrapper, classInput);
 
-    const queryWrapper = staticDefineQueryUI.controlEl.createDiv("query-wrapper");
-    const queryInput = this.inputUI({ parent: queryWrapper, placeholder: "search" });
-
-    const queryTypeInput = new ToggleComponent(queryWrapper);
-    queryTypeInput.toggleEl.addClass("highlighter-settings-regex");
-    queryTypeInput.toggleEl.ariaLabel = "Enable Regex";
-    queryTypeInput.onChange(value => {
-      if (value) {
-        queryInput.setPlaceholder("Search expression");
-        // groupWrapper.show();
-        marks.group?.element.show();
-      } else {
-        queryInput.setPlaceholder("Search term");
-        marks.group?.element.hide();
-      }
-    });
-
-    const buildMarkerTypes = (parentEl: HTMLElement) => {
-      const types: MarkItems = {};
-      const marks: MarkTypes = {
-        match: { description: "matches", defaultState: true },
-        group: { description: "capture groups", defaultState: false },
-        line: { description: "parent line", defaultState: false },
-        start: { description: "start", defaultState: false },
-        end: { description: "end", defaultState: false },
-      };
-      const container = parentEl.createDiv("mark-wrapper");
-      let type: markTypes;
-      for (type in marks) {
-        let mark = marks[type];
-        const wrapper = container.createDiv("mark-wrapper");
-        if (type === "group")
-          wrapper.hide();
-        wrapper.createSpan("match-type").setText(mark.description);
-        const component = new ToggleComponent(wrapper).setValue(mark.defaultState);
-        types[type] = {
-          element: wrapper,
-          component: component,
-        };
-      }
-      return types;
-    }
-
-    const marks = buildMarkerTypes(staticDefineQueryUI.controlEl);
-    console.log(marks)
+    const { marks, queryTypeInput, queryInput } = this.queryUI(staticDefineQueryUI);
 
 
     const { customCSSWrapper, editor } = this.customCSSUI(staticDefineQueryUI);
@@ -319,11 +274,34 @@ export class SettingTab extends PluginSettingTab {
       }
     });
 
-
     this.sortableContainerEl(highlightersContainer, config);
   }
 
 
+
+  private queryUI(staticDefineQueryUI: Setting): {
+    marks: Partial<Record<markTypes, { element: HTMLElement; component: ToggleComponent; }>>;
+    queryTypeInput: ToggleComponent;
+    queryInput: TextComponent;
+  } {
+    const queryWrapper = staticDefineQueryUI.controlEl.createDiv("query-wrapper");
+    const queryInput = this.inputUI({ parent: queryWrapper, placeholder: "search" });
+    const queryTypeInput = new ToggleComponent(queryWrapper);
+    queryTypeInput.toggleEl.addClass("highlighter-settings-regex");
+    queryTypeInput.toggleEl.ariaLabel = "Enable Regex";
+    queryTypeInput.onChange(value => {
+      if (value) {
+        queryInput.setPlaceholder("Search expression");
+        // groupWrapper.show();
+        marks.group?.element.show();
+      } else {
+        queryInput.setPlaceholder("Search term");
+        marks.group?.element.hide();
+      }
+    });
+    const marks = this.buildMarkerTypes(staticDefineQueryUI.controlEl);
+    return { marks, queryTypeInput, queryInput };
+  }
 
   private inputUI({ parent,
     placeholder = "Highlighter name",
@@ -525,6 +503,32 @@ export class SettingTab extends PluginSettingTab {
         this.plugin.saveSettings();
       },
     });
+  }
+
+  private buildMarkerTypes(parentEl: HTMLElement): Partial<Record<markTypes, { element: HTMLElement; component: ToggleComponent; }>> {
+    const types: MarkItems = {};
+    const marks: MarkTypes = {
+      match: { description: "matches", defaultState: true },
+      group: { description: "capture groups", defaultState: false },
+      line: { description: "parent line", defaultState: false },
+      start: { description: "start", defaultState: false },
+      end: { description: "end", defaultState: false },
+    };
+    const container = parentEl.createDiv("mark-wrapper");
+    let type: markTypes;
+    for (type in marks) {
+      let mark = marks[type];
+      const wrapper = container.createDiv("mark-wrapper");
+      if (type === "group")
+        wrapper.hide();
+      wrapper.createSpan("match-type").setText(mark.description);
+      const component = new ToggleComponent(wrapper).setValue(mark.defaultState);
+      types[type] = {
+        element: wrapper,
+        component: component,
+      };
+    }
+    return types;
   }
 };
 

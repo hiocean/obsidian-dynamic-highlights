@@ -2,7 +2,7 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-11-28 12:24:30
+ * @LastEditTime: 2022-11-28 14:08:34
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
@@ -86,28 +86,3 @@ export function setAttributes(element: any, attributes: any) {
 
 export type MarkTypes = Record<markTypes, { description: string; defaultState: boolean; }>;
 export type MarkItems = Partial<Record<markTypes, { element: HTMLElement; component: ToggleComponent; }>>;
-export function buildMarkerTypes(parentEl: HTMLElement): Partial<Record<markTypes, { element: HTMLElement; component: ToggleComponent; }>> {
-  const types: MarkItems = {};
-  const marks: MarkTypes = {
-    match: { description: "matches", defaultState: true },
-    group: { description: "capture groups", defaultState: false },
-    line: { description: "parent line", defaultState: false },
-    start: { description: "start", defaultState: false },
-    end: { description: "end", defaultState: false },
-  };
-  const container = parentEl.createDiv("mark-wrapper");
-  let type: markTypes;
-  for (type in marks) {
-    let mark = marks[type];
-    const wrapper = container.createDiv("mark-wrapper");
-    if (type === "group")
-      wrapper.hide();
-    wrapper.createSpan("match-type").setText(mark.description);
-    const component = new ToggleComponent(wrapper).setValue(mark.defaultState);
-    types[type] = {
-      element: wrapper,
-      component: component,
-    };
-  }
-  return types;
-}
