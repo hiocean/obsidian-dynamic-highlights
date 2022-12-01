@@ -80,6 +80,11 @@ export default class DynamicHighlightsPlugin extends Plugin {
     if (!this.settings.frontmatterHighlighter.enableFrontmatterHighlight) return
     const currFile = this.app.workspace.getActiveFile()
     if (!currFile) return;
+    Object.keys(this.settings.staticHighlighter.queries).forEach(key => {
+      if (!this.settings.staticHighlighter.queryOrder.includes(key)) {
+        delete this.settings.staticHighlighter.queries[key];
+      }
+    })
     const kw = this.settings.frontmatterHighlighter.frontmatterHighlightKeywords;
     let highlightInFm;
 
@@ -102,24 +107,23 @@ export default class DynamicHighlightsPlugin extends Plugin {
       }
       console.log("Show: " + highlightInFm);
 
-      Object.keys(this.settings.staticHighlighter.queries).forEach(key=>{
-        if (!this.settings.staticHighlighter.queryOrder.includes(key)) {
-          delete this.settings.staticHighlighter.queries[key];
-        }
-      })
+
       const queries = this.settings.frontmatterHighlighter.queries
       const cssLenth = Object.keys(queries).length
       const index = highlightInFm.length > cssLenth ? cssLenth : highlightInFm.length
       for (let i = 0; i < index; i++) {
         const className = Object.keys(queries)[i]
-        queries[className].query = highlightInFm[i]
-        this.settings.staticHighlighter.queries[className] = queries[className]
+        const tempQuery = Object.assign({}, queries[className]);
+        tempQuery.query = highlightInFm[i]
+        this.settings.staticHighlighter.queries[className] = tempQuery
         // this.toBedeleteQuery.push(className)
         console.log(`addded:  - + ${className} + ${highlightInFm[i]}`);  //todo
       }
-      this.updateStaticHighlighter()
-      // await this.saveSettings();
+
     }
+    await this.saveSettings();
+    this.updateStaticHighlighter()
+
   }
 
   async loadSettings() {
@@ -159,7 +163,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
   updateStaticHighlighter() {
     this.extensions.remove(this.staticHighlighter);
     this.staticHighlighter = staticHighlighterExtension(this);
-    // this.frontmatterHighlighter = frontmatterHighlighterExtension(this);
     this.extensions.push(this.staticHighlighter);
     this.app.workspace.updateOptions();
   }
@@ -197,6 +200,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
     true
   );
   onunload() {
-    // this.toBedeleteQuery.forEach(e => { delete this.settings.staticHighlighter.queries[e] })
+    
   }
 }
