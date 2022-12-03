@@ -8,25 +8,7 @@ import { DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions } from 
 import { SettingTab } from "./settings/ui";
 
 
-async function getFrontmatter(tf: TFile, highlighterKw: string) {
-  const fullText = await this.app.vault.read(tf);
-  const regexfm = new RegExp(`---[\\s\\S]*?${highlighterKw}[\\s\\S]*?---`, 'gm')
-  const fmMatch = regexfm.exec(fullText); if (!fmMatch) { return }
 
-  let result;
-  const regexKwSingleLine = new RegExp(`^\\s*${highlighterKw}:(.*)$`, 'gm')
-  const fmkw = regexKwSingleLine.exec(fmMatch[0]);
-  if (fmkw) {
-    result = fmkw[1].trim(); if (result) { return result }
-  }
-
-  const regexKwMultiLine = new RegExp(`(?<=^\\s*${highlighterKw}:[\\s]*[\\r\\n]+)(\\s*-.*?\\n)+`, 'gm')
-  result = fmMatch[0].match(regexKwMultiLine);
-  if (result) {
-    result = result[0].split('\n').filter(e => e).map(e => e.replace(/\s*-/, "").trim())
-  }
-  return result;
-}
 
 interface CustomCSS {
   css: string;
@@ -77,53 +59,81 @@ export default class DynamicHighlightsPlugin extends Plugin {
   }
 
   async updateFrontmatterHighlighter({ useCache = true }: { useCache?: boolean; } = {}): Promise<void> {
+    console.log("Func updateFrontmatterHighlighter is called!")
     if (!this.settings.frontmatterHighlighter.enableFrontmatterHighlight) return
-    const currFile = this.app.workspace.getActiveFile()
-    if (!currFile) return;
+    // let hasModified = false,currHighlightInFm;
+    let { hasModified, result: currHighlightInFm } = await this.getFrontmatter(useCache)
+    console.log("obtained highlighter in fm: " + currHighlightInFm);
+    
     Object.keys(this.settings.staticHighlighter.queries).forEach(key => {
       if (!this.settings.staticHighlighter.queryOrder.includes(key)) {
         delete this.settings.staticHighlighter.queries[key];
+        hasModified = true
       }
-    })
-    const kw = this.settings.frontmatterHighlighter.frontmatterHighlightKeywords;
-    let highlightInFm;
-
-    if (useCache) {
-      const currFrontmatter = this.app.metadataCache.getFileCache(currFile)?.frontmatter
-      if (!currFrontmatter) return
-      highlightInFm = currFrontmatter[kw]
-    } else {
-      highlightInFm = await getFrontmatter(currFile, kw)
-      console.log("read file" + highlightInFm);
-    }
-
-    if (highlightInFm) {
-      if (typeof highlightInFm === 'string' && highlightInFm.match(/[,，]/)) {
-        highlightInFm = highlightInFm.split(/[,，]/).filter(e => e)
-      } else if (highlightInFm instanceof Array) {
-        highlightInFm = highlightInFm
+    })  
+    
+    if (currHighlightInFm) {
+      if (typeof currHighlightInFm === 'string' && currHighlightInFm.match(/[,，]/)) {
+        currHighlightInFm = currHighlightInFm.split(/[,，]/).filter(e => e)
+      } else if (currHighlightInFm instanceof Array) {
+        currHighlightInFm = currHighlightInFm
       } else {
-        highlightInFm = [highlightInFm]
+        currHighlightInFm = [currHighlightInFm]
       }
-      console.log("Show: " + highlightInFm);
-
-
+      console.log("Show cleared highlighter in fm: " + currHighlightInFm);
       const queries = this.settings.frontmatterHighlighter.queries
       const cssLenth = Object.keys(queries).length
-      const index = highlightInFm.length > cssLenth ? cssLenth : highlightInFm.length
+      const index = currHighlightInFm.length > cssLenth ? cssLenth : currHighlightInFm.length
       for (let i = 0; i < index; i++) {
         const className = Object.keys(queries)[i]
         const tempQuery = Object.assign({}, queries[className]);
-        tempQuery.query = highlightInFm[i]
+        tempQuery.query = currHighlightInFm[i]
         this.settings.staticHighlighter.queries[className] = tempQuery
-        // this.toBedeleteQuery.push(className)
-        console.log(`addded:  - + ${className} + ${highlightInFm[i]}`);  //todo
+        console.log(`addded: Name: ${className}; query: ${currHighlightInFm[i]}`);
+        hasModified = true
       }
 
     }
-    await this.saveSettings();
-    this.updateStaticHighlighter()
+    if (hasModified = true) {
+      await this.saveSettings();
+      this.updateStyles();
+      this.updateStaticHighlighter()
+    }
 
+  }
+  async getFrontmatter(useCache: boolean = true): Promise<{ hasModified: boolean; result: string | string[] | undefined; }> {
+    let hasModified = false; let result: string | string[] | undefined;
+    const tf = this.app.workspace.getActiveFile();
+    if (tf) {
+      const highlighterKw = this.settings.frontmatterHighlighter.frontmatterHighlightKeywords;
+      const cachedFrontmatter = this.app.metadataCache.getFileCache(tf)?.frontmatter
+      if (useCache) { result = cachedFrontmatter![highlighterKw] }
+
+      const fullText = await this.app.vault.read(tf);
+      const regexfm = new RegExp(`---[\\s\\S]*?${highlighterKw}[\\s\\S]*?---`, 'gm')
+      const fmMatch = regexfm.exec(fullText);
+      if (fmMatch) {
+        const regexKwSingleLine = new RegExp(`^\\s*${highlighterKw}:(.*)$`, 'gm')
+        const fmkw = regexKwSingleLine.exec(fmMatch[0]);
+        if (fmkw) {
+          let result2 = fmkw[1].trim();
+          if (result2) {
+            hasModified = (result2 != result);
+            result = result2;
+            return { hasModified, result }
+          }
+        }
+        const regexKwMultiLine = new RegExp(`(?<=^\\s*${highlighterKw}:[\\s]*[\\r\\n]+)(\\s*-.*?\\n)+`, 'gm')
+        let result2 = fmMatch[0].match(regexKwMultiLine);
+        if (result2) {
+          result2 = result2[0].split('\n').filter(e => e).map(e => e.replace(/\s*-/, "").trim())
+          hasModified = (result2 != result);
+          result = result2;
+          return { hasModified, result }
+        }
+      }
+    }
+    return { hasModified, result };
   }
 
   async loadSettings() {
@@ -200,6 +210,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
     true
   );
   onunload() {
-    
+
   }
 }
