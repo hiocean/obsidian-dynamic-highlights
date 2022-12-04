@@ -2,7 +2,7 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-11-28 14:08:34
+ * @LastEditTime: 2022-12-04 15:18:41
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
@@ -51,12 +51,14 @@ export type FrontmatterHighlightOptions = {
   
 };
 export interface DynamicHighlightsSettings {
+  debug: boolean;
   selectionHighlighter: SelectionHighlightOptions;
   staticHighlighter: StaticHighlightOptions;
   frontmatterHighlighter:FrontmatterHighlightOptions;
 }
 
 export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
+  debug: false,
   selectionHighlighter: {
     highlightWordAroundCursor: true,
     highlightSelectedText: true,

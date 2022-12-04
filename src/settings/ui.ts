@@ -15,7 +15,7 @@ import {
 } from "obsidian";
 import Sortable from "sortablejs";
 import { basicSetup } from "src/editor/extensions";
-import DynamicHighlightsPlugin from "../main";
+import DynamicHighlightsPlugin, { debugPrint } from "../main";
 import { ExportModal } from "./export";
 import { ImportModal } from "./import";
 import { FrontmatterHighlightOptions, MarkItems, MarkTypes, markTypes } from "./settings";
@@ -24,12 +24,16 @@ import { basicLightTheme } from "../editor/theme-light";
 import { StaticHighlightOptions } from "src/highlighters/static";
 import { SearchQuery } from "./settings";
 
+type TabContentInfo = { content: HTMLElement, heading: HTMLElement, navButton: HTMLElement }
 export class SettingTab extends PluginSettingTab {
   plugin: DynamicHighlightsPlugin;
   fmEditor: EditorView;
   staticEditor: EditorView;
   scope: Scope;
   pickrInstance: Pickr;
+  private navigateEl: HTMLElement;
+  private selectedTab = 'General';
+  private allTabs: Map<string, TabContentInfo> = new Map<string, TabContentInfo>();
 
   constructor(app: App, plugin: DynamicHighlightsPlugin) {
     super(app, plugin);
@@ -43,58 +47,116 @@ export class SettingTab extends PluginSettingTab {
   }
 
   display(): void {
-
     const { containerEl } = this;
     containerEl.empty();
-
     containerEl.addClass("dynamic-highlights-settings");
+    this.generateSettingsTitle();
+    this.addTabHeader();
+  }
+  private generateSettingsTitle() {
+    const linterHeader = this.containerEl.createDiv('setting-setting-title');
+    linterHeader.createEl('h1', { text: 'Highlighter Settings' });
+    this.imExportUI(this.containerEl);
+  }
 
-    this.imExportUI(containerEl);
+  private addTabHeader() {
+    const navContainer = this.containerEl.createEl('nav', { cls: 'setting-setting-header' });
+    this.navigateEl = navContainer.createDiv('setting-setting-tab-group');
+    const settingsEl = this.containerEl.createDiv('setting-setting-content');
 
-    this.staticHighlightUI(this.plugin.settings.staticHighlighter, containerEl);
+    this.createTabAndContent('General', this.navigateEl, settingsEl,
+      (el: HTMLElement, tabName: string) => this.generateGeneralSettings(tabName, el));
+    this.createTabAndContent('Static Type', this.navigateEl, settingsEl,
+      (el: HTMLElement, tabName: string) => this.staticHighlightUI(this.plugin.settings.staticHighlighter, el));
+    this.createTabAndContent('Frontmatter Type', this.navigateEl, settingsEl,
+      (el: HTMLElement, tabName: string) => this.frontmatterHighlightUI(this.plugin.settings.frontmatterHighlighter, el));
+    this.createTabAndContent('Selection', this.navigateEl, settingsEl,
+      (el: HTMLElement, tabName: string) => this.selectionHighlightUI(el));
+    this.createTabAndContent('Ignored Word', this.navigateEl, settingsEl,
+      (el: HTMLElement, tabName: string) => this.ignoredWordUI(el));
+    this.createTabAndContent('Debug', this.navigateEl, settingsEl,
+      (el: HTMLElement, tabName: string) => this.debugUI(el));
+  }
+  private createTabAndContent(tabName: string, navigateEl: HTMLElement, containerEl: HTMLElement,
+    generateTabContent?: (el: HTMLElement, tabName: string) => void) {
+    const displayTabContent = this.selectedTab === tabName;
+    const tabEl = navigateEl.createDiv('setting-navigation-item');
+    tabEl.addClass('setting-desktop');
+    // setIcon(tabEl.createEl("div", { cls: 'setting-navigation-item-icon' }), tabNameToTabIconId[tabName], 20);
+    tabEl.createSpan().setText(tabName);
 
-    this.frontmatterHighlightUI(this.plugin.settings.frontmatterHighlighter, containerEl);
+    tabEl.onclick = () => {
+      if (this.selectedTab == tabName) { return; }
+      tabEl.addClass('setting-navigation-item-selected');
+      const tab = this.allTabs.get(tabName);
+      (tab?.content as HTMLElement).show();
 
-    this.selectionHighlightUI(containerEl);
+      if (this.selectedTab != '') {
+        const tabInfo = this.allTabs.get(this.selectedTab);
+        tabInfo?.navButton.removeClass('setting-navigation-item-selected');
+        (tabInfo?.content as HTMLElement).hide();
+      } else {
+        for (const tabInfo of this.allTabs) {
+          const tab = tabInfo[1];
+          (tab.heading as HTMLElement).hide();
+          if (tabName !== tabInfo[0]) {
+            (tab.content as HTMLElement).hide();
+          }
+        }
+      }
+      this.selectedTab = tabName;
+    };
+    const tabContent = containerEl.createDiv('setting-tab-settings');
 
-    this.ignoredWordUI(containerEl);
+    const tabHeader = tabContent.createEl('h2', { cls: "setting-setting-heading", text: tabName + ' Settings' });
+    (tabHeader as HTMLElement).hide();
+    tabContent.id = tabName.toLowerCase().replace(' ', '-');
+
+    if (!displayTabContent) {
+      (tabContent as HTMLElement).hide();
+    } else {
+      tabEl.addClass('setting-navigation-item-selected');
+    }
+    if (generateTabContent) {
+      generateTabContent(tabContent, tabName);
+    }
+    this.allTabs.set(tabName, { content: tabContent, heading: tabHeader, navButton: tabEl });
+  }
+
+  private generateGeneralSettings(tabName: string, containerEl: HTMLElement) {
+    this.enableFrontmatterUI(containerEl);
+    this.setFrontmatterKeywordUI(containerEl);
+    this.selectionHighlightUI(containerEl)
+    this.debugUI(containerEl)
+  }
+
+  private debugUI(containerEl: HTMLElement) {
+    // containerEl.createEl('h2', { text: 'Debug' });
+    new Setting(containerEl)
+      .setName("Print debug info in console")
+      .setDesc("在控制台输出调试信息")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.settings.debug).onChange(async (value) => {
+          this.plugin.settings.debug = value;
+          await this.plugin.saveSettings();
+        });
+      });
   }
 
   private frontmatterHighlightUI(config: FrontmatterHighlightOptions, containerEl: HTMLElement) {
     containerEl.createEl("h3", { text: "Frontmatter based Highlights", });
 
-    const defaultfmkw = this.plugin.settings.frontmatterHighlighter.frontmatterHighlightKeywords
-    new Setting(containerEl).setName("Enable frontmatter highlighter ")
-      .addToggle(toggle => {
-        toggle
-          .setValue(config.enableFrontmatterHighlight)
-          .onChange(value => {
-            config.enableFrontmatterHighlight = value;
-            this.plugin.saveSettings();
-            this.plugin.updateStaticHighlighter();
-            this.plugin.updateFrontmatterHighlighter();
-          });
-      });
-    new Setting(containerEl).setName("Frontmatter keyword")
-      .setDesc(`The keyword in the front matter, default is '${defaultfmkw}'.`)
-      .addText(text => {
-        text.inputEl.type = "string";
-        text.setPlaceholder(defaultfmkw)
-        text.setValue("").onChange(value => {
-          this.plugin.settings.frontmatterHighlighter.frontmatterHighlightKeywords = value;
-          this.plugin.saveSettings();
-          this.plugin.updateStaticHighlighter();
-          this.plugin.updateFrontmatterHighlighter();
-        });
-      });
+
+    this.enableFrontmatterUI(containerEl);
+    this.setFrontmatterKeywordUI(containerEl);
 
     const fmDefineQueryUI = new Setting(containerEl);
     fmDefineQueryUI.setName("Define Frontmatter highlighters").setClass("highlighter-definition").setDesc(`In this section you define highlighters based on front matter.       Thus, only css is needed, name is optional.`);
 
     const defaultClassName = this.getDefaultFmCSSName(config);
 
-    const classInput = this.inputUI({ parent: fmDefineQueryUI.controlEl, placeholder: defaultClassName });
-    
+    const classInput = this.textInputUI({ parent: fmDefineQueryUI.controlEl, placeholder: defaultClassName });
+
     const { customCSSWrapper, editor } = this.customCSSUI(fmDefineQueryUI);
     this.fmEditor = editor;
 
@@ -131,6 +193,36 @@ export class SettingTab extends PluginSettingTab {
       });
 
     this.sortableContainerEl(highlightersContainer, config);
+  }
+
+  private setFrontmatterKeywordUI(containerEl: HTMLElement) {
+    const defaultfmkw = this.plugin.settings.frontmatterHighlighter.frontmatterHighlightKeywords
+    new Setting(containerEl)
+      .setName("Frontmatter keyword")
+      .setDesc(`The keyword in the front matter, default is '${defaultfmkw}'.`)
+      .addText(text => {
+        text.inputEl.type = "string";
+        // text.setPlaceholder(defaultfmkw);
+        // text.inputEl.addClass("highlighter-name" );
+        text.setValue(defaultfmkw).onChange(value => {
+          this.plugin.settings.frontmatterHighlighter.frontmatterHighlightKeywords = value;
+          this.plugin.saveSettings();
+          this.plugin.updateFrontmatterHighlighter();
+        });
+      });
+  }
+
+  private enableFrontmatterUI(containerEl: HTMLElement) {
+    new Setting(containerEl).setName("Enable frontmatter highlighter ")
+      .addToggle(toggle => {
+        toggle
+          .setValue(this.plugin.settings.frontmatterHighlighter.enableFrontmatterHighlight)
+          .onChange(value => {
+            this.plugin.settings.frontmatterHighlighter.enableFrontmatterHighlight = value;
+            this.plugin.saveSettings();
+            this.plugin.updateFrontmatterHighlighter();
+          });
+      });
   }
 
   private getDefaultFmCSSName(config: FrontmatterHighlightOptions): string {
@@ -177,7 +269,8 @@ export class SettingTab extends PluginSettingTab {
       .setDesc("The delay, in milliseconds, before selection highlights will appear. Must be greater than 200ms.")
       .addText(text => {
         text.inputEl.type = "number";
-        text.setValue(String(this.plugin.settings.selectionHighlighter.highlightDelay)).onChange(value => {
+        text.setValue(String(this.plugin.settings.selectionHighlighter.highlightDelay))
+          .onChange(value => {
           if (parseInt(value) < 200) value = "200";
           if (parseInt(value) >= 0) this.plugin.settings.selectionHighlighter.highlightDelay = parseInt(value);
           this.plugin.saveSettings();
@@ -219,12 +312,13 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private staticHighlightUI(config: StaticHighlightOptions, containerEl: HTMLElement) {
-    containerEl.createEl("h3", { text: "Persistent Highlights", }).addClass("persistent-highlights");
+    containerEl.createEl("h3", { text: "Persistent Highlights", })
+    // .addClass("persistent-highlights");
 
     const staticDefineQueryUI = new Setting(containerEl);
     staticDefineQueryUI.setName("Define Common highlighters").setClass("highlighter-definition").setDesc(`In this section you define a unique highlighter name along with the css.        Make sure to click the save button.`);
 
-    const classInput = this.inputUI({ parent: staticDefineQueryUI.controlEl });
+    const classInput = this.textInputUI({ parent: staticDefineQueryUI.controlEl });
 
     const colorWrapper = staticDefineQueryUI.controlEl.createDiv("color-wrapper");
     let pickrInstance: Pickr = this.colorWrapperEl(colorWrapper, classInput);
@@ -248,7 +342,7 @@ export class SettingTab extends PluginSettingTab {
           mark: enabledMarks,
           css: this.staticEditor.state.doc.toString(),
         };
-        // console.log("class name is :" + aquery.class)
+        // debugPrint("class name is :" + aquery.class)
       }
     });
 
@@ -287,7 +381,7 @@ export class SettingTab extends PluginSettingTab {
     queryInput: TextComponent;
   } {
     const queryWrapper = staticDefineQueryUI.controlEl.createDiv("query-wrapper");
-    const queryInput = this.inputUI({ parent: queryWrapper, placeholder: "search" });
+    const queryInput = this.textInputUI({ parent: queryWrapper, placeholder: "search" });
     const queryTypeInput = new ToggleComponent(queryWrapper);
     queryTypeInput.toggleEl.addClass("highlighter-settings-regex");
     queryTypeInput.toggleEl.ariaLabel = "Enable Regex";
@@ -305,7 +399,7 @@ export class SettingTab extends PluginSettingTab {
     return { marks, queryTypeInput, queryInput };
   }
 
-  private inputUI({ parent,
+  private textInputUI({ parent,
     placeholder = "Highlighter name",
     ariaLabel = "",
     addClass = "highlighter-name" }: {
@@ -355,8 +449,13 @@ export class SettingTab extends PluginSettingTab {
           config.queries[className] = aquery
 
           await this.plugin.saveSettings();
-          this.plugin.updateStaticHighlighter();
-          this.plugin.updateFrontmatterHighlighter();
+          if ('enableFrontmatterHighlight' in config) {
+            debugPrint({ arg: "call updateFrontmatterHighlighter!" });
+            this.plugin.updateFrontmatterHighlighter();
+          } else {
+            this.plugin.updateStaticHighlighter();
+            debugPrint({ arg: "call updateStaticHighlighter!" });
+          }
           this.plugin.updateCustomCSS();
           this.plugin.updateStyles();
           this.display();
@@ -374,7 +473,7 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private highlightersContainerEl({ config, containerEl, editCallback }: {
-    config: StaticHighlightOptions; containerEl: HTMLElement;
+    config: StaticHighlightOptions | FrontmatterHighlightOptions; containerEl: HTMLElement;
     editCallback: (highlighter: string) => void
   }): HTMLDivElement {
     const highlightersContainer = containerEl.createEl("div", { cls: "highlighter-container", });
@@ -426,7 +525,13 @@ export class SettingTab extends PluginSettingTab {
               config.queryOrder.remove(highlighter);
               await this.plugin.saveSettings();
               this.plugin.updateStyles();
-              this.plugin.updateStaticHighlighter();
+              if ('enableFrontmatterHighlight' in config) {
+                debugPrint({ arg: "call updateFrontmatterHighlighter!" });
+                this.plugin.updateFrontmatterHighlighter();
+              } else {
+                this.plugin.updateStaticHighlighter();
+                debugPrint({ arg: "call updateStaticHighlighter!" });
+              }
               highlightersContainer.querySelector(`#dh-${highlighter}`)!.detach();
             });
         });
@@ -547,3 +652,10 @@ function editorFromTextArea(textarea: HTMLTextAreaElement, extensions: Extension
     });
   return view;
 }
+
+
+// const tabNameToTabIconId: Record<string, string> = {
+//   General: 'chrome',
+//   Search: 'search',
+//   Theme: 'brush',
+// };

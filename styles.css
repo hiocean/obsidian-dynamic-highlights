@@ -783,3 +783,428 @@
 }
 
 /* #endregion pickr vendored styles */
+
+
+
+.dynamic-highlights-runner {
+  width: 40px;
+  max-width: 40px;
+  height: 40px;
+  max-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 80px;
+  right: 40px;
+  font-size: 20px;
+  border-radius: 100%;
+  box-shadow: 5px 5px 20px 0 rgba(0, 0, 0, 0.4);
+  z-index: 2;
+  transition: all 0.1s ease;
+  color: inherit;
+}
+
+.dynamic-highlights-runner--clear {
+  font-size: 25px;
+}
+
+.dynamic-highlights-runner--hidden {
+  display: none !important;
+}
+
+.dynamic-highlights-runner:active {
+  box-shadow: 2px 2px 5px 0 rgba(0, 0, 0, 0.4);
+  transform: translateY(1px);
+}
+
+.dynamic-highlights-runner--active {
+  box-shadow: 2px 2px 5px 0 rgba(0, 0, 0, 0.4);
+  transform: translateY(1px);
+}
+
+.dynamic-highlights-runner--active span {
+  animation: spin 1s linear infinite;
+}
+
+.dynamic-highlights-runner--loading span {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bounce {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.setting-view-content {
+	padding: 0 !important;
+	overflow: hidden !important;
+}
+
+.setting-frame {
+	width: 100%;
+	height: 100%;
+	border: none;
+	background-color: white;
+	background-clip: content-box;
+}
+
+.setting-header-bar::after {
+	background: transparent !important;
+}
+
+.setting-search-bar {
+	width: 100%;
+}
+
+.setting-search-box {
+	display: flex;
+	flex-direction: row;
+	position: absolute;
+	z-index: 20;
+	top: 35px;
+	right: 200px;
+	width: 200px;
+	height: 44px;
+	background-color: var(--color-base-20);
+	padding: 7px;
+	border: var(--input-border-width) solid var(--background-modifier-border);
+}
+
+.setting-search-input {
+	width: 60%;
+	height: 100%;
+}
+
+.setting-search-button-group {
+	width: 40%;
+	height: 100%;
+	display: flex;
+	flex-direction: row;
+}
+
+.setting-search-button {
+	display: flex;
+	align-items: center;
+
+	width: 100%;
+	height: var(--input-height);
+	border: var(--input-border-width) solid var(--background-modifier-border);
+	background-color: var(--background-modifier-form-field);
+	margin-left: 4px;
+}
+
+.setting-page-search-bar-input-container, .setting-page-search-bar-input {
+	width: 500px;
+	min-width: 20px;
+	height: 44px !important;
+	border-radius: 15px !important;
+	margin-bottom: 20px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.setting-page-search-bar {
+	flex-direction: column-reverse;
+}
+
+.setting-page-search-bar .empty-state-container {
+	display: none;
+}
+
+.setting-search-bar-container {
+	margin-left: auto;
+	margin-right: auto;
+	position: absolute;
+	top: 26%;
+}
+
+.setting-page-search-bar-container {
+	/*margin-left: auto;*/
+	/*margin-right: auto;*/
+	/*margin-bottom: 29%;*/
+}
+
+
+.setting-page-search-bar-text {
+	text-align: center;
+	margin-bottom: 20px;
+	font-size: 72px;
+	font-weight: bolder;
+	color: var(--color-accent);
+}
+
+.setting-create-btn, .setting-search-btn {
+	opacity: 0.4;
+	color: #9DA7D9;
+}
+
+.setting-close-btn {
+	opacity: 0.4;
+	color: #D99DA8;
+}
+
+.setting-icon-list-container button {
+	padding: 1px 6px;
+}
+
+.setting-create-btn:hover, .setting-search-btn:hover {
+	opacity: 1;
+}
+
+.setting-close-btn:hover {
+	opacity: 1;
+}
+
+
+.setting-close-btn:hover > button > .lucide-x-square {
+	color: #D99DA8;
+}
+
+.setting-close-btn > button > .lucide-x-square {
+	color: var(--color-red);
+}
+
+
+.setting-icon-list-container {
+	margin-right: auto;
+	margin-left: auto;
+	position: absolute;
+	bottom: 12%;
+	display: flex;
+	flex-direction: row;
+	gap: 10px;
+}
+
+
+.setting-btn-tip {
+	color: var(--color-base-60);
+}
+
+.setting-btn:hover {
+	background: var(--color-accent) !important;
+
+}
+
+.setting-btn {
+	filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
+}
+
+.theme-dark .setting-btn a {
+	color: var(--color-base-80) !important;
+}
+
+.setting-item.search-engine-setting {
+	flex-wrap: wrap;
+}
+
+.search-engine-setting .setting-item-control {
+	flex: 1 1 auto;
+	text-align: right;
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+
+.search-engine-setting .search-engine-main-settings {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	border-top: solid 1px var(--background-modifier-border);
+	margin-top: 10px;
+}
+
+.search-engine-main-settings-name {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 5px;
+	margin-top: 5px;
+}
+
+.search-engine-main-settings-url {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 5px;
+}
+
+.search-engine-setting .setting-item-name::before {
+	content: "";
+	display: inline-block;
+	height: 20px;
+	width: 1px;
+	border-left: 3px solid var(--text-accent);
+	vertical-align: middle;
+	margin-right: 10px;
+	margin-left: 0;
+}
+
+.setting-setting-title {
+	display: flex;
+	justify-content: space-between;
+	flex-direction: row;
+	align-items: center;
+}
+
+.setting-setting-tab-group {
+	display: flex;
+	justify-content: flex-start;
+}
+
+.setting-setting-searching {
+	opacity: 0.4;
+}
+
+.setting-navigation-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 3px;
+	margin-right: 10px;
+	margin-bottom: 2px;
+	padding: 6px 5px 4px;
+	border-radius: 5px;
+}
+
+.setting-navigation-item-selected {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.setting-setting-header {
+	border-bottom: var(--color-base-40) 0px solid;
+}
+
+.setting-tab-settings {
+	margin-bottom: 20px;
+}
+
+.setting-setting-heading {
+	color: var(--color-accent);
+}
+
+.setting-about-icon {
+	height: 72px;
+	text-align: center;
+}
+
+.setting-about-icon .surfing {
+	height: 72px !important;
+	width: 72px !important;
+}
+
+.setting-about-text {
+	font-size: 16px;
+	color: var(--color-accent);
+}
+
+.setting-about-card {
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+	margin-top: 30px;
+}
+
+.setting-about-version {
+	font-size: 14px;
+	text-decoration: unset !important;
+	opacity: 0.8;
+	color: var(--link-color);
+}
+
+.surfing-settings-icon {
+	width: fit-content;
+	height: fit-content;
+	position: absolute;
+	right: 20px;
+}
+
+.setting-frame-notice {
+	text-align: center;
+	background-color: var(--color-yellow);
+	font-size: 14px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+
+.setting-search-suggestion-container {
+	background-color: var(--color-base-10);
+	border-radius: var(--radius-l);
+	filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
+}
+
+.setting-search-suggestion {
+	border-radius: var(--radius-l);
+	margin-bottom: -1px;
+}
+
+.setting-search-suggest-item.is-selected {
+	background-color: var(--color-accent);
+}
+
+.theme-light .setting-search-suggest-item.is-selected {
+	color: var(--color-base-10);
+}
+
+.setting-search-suggest-item:first-child.is-selected {
+	/*background-color: var(--color-base-30);*/
+	border-radius: var(--radius-l) var(--radius-l) var(--radius-m) var(--radius-m);
+}
+
+.setting-search-suggest-item:last-child.is-selected {
+	/*background-color: var(--color-base-30);*/
+	border-radius: var(--radius-m) var(--radius-m) var(--radius-l) var(--radius-l);
+}
+
+.setting-search-suggest-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.theme-light .setting-search-suggest-item.is-selected .setting-search-suggestion-index {
+	color: var(--color-base-10);
+	opacity: 0.6;
+}
+
+.setting-search-suggestion-index {
+	opacity: 0.2;
+	font-size: 12px;
+	font-weight: bold;
+}
+
+input[type='text'].setting-search-bar:active, input[type='text'].setting-search-bar:focus, input[type='text'].setting-search-bar:focus-visible {
+	box-shadow: unset;
+}
+
+input[type='text'].setting-page-search-bar-input:active, input[type='text'].setting-page-search-bar-input:focus, input[type='text'].setting-page-search-bar-input:focus-visible {
+	box-shadow: unset;
+}
+
+.setting-theme-settings-working-on {
+	background-color: var(--color-accent);
+	flex-direction: column;
+	border-radius: var(--radius-l);
+	/* color: var(--color-base-10); */
+}
+
+.theme-light .setting-theme-settings-working-on .setting-item-name {
+	/*background-color: var(--color-accent);*/
+	color: var(--color-base-10);
+}

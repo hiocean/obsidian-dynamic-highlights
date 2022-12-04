@@ -1,6 +1,7 @@
 import { Extension, StateEffect } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { debounce, MarkdownView, Notice, Plugin, TFile } from "obsidian";
+import { debug } from "console";
+import { debounce, MarkdownView, Notice, Plugin, TFile, Events } from "obsidian";
 import { highlightSelectionMatches, reconfigureSelectionHighlighter } from "./highlighters/selection";
 import { buildStyles, staticHighlighterExtension } from "./highlighters/static";
 import addIcons from "./icons/customIcons";
@@ -8,6 +9,12 @@ import { DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions } from 
 import { SettingTab } from "./settings/ui";
 
 
+// let ;
+export function debugPrint({ arg, debug = false }: { arg: any; debug?: boolean; }): void {
+  if (debug) {
+    console.log(arg)
+  }
+}
 
 
 interface CustomCSS {
@@ -25,18 +32,20 @@ export default class DynamicHighlightsPlugin extends Plugin {
   customCSS: Record<string, CustomCSS>;
   styleEl: HTMLElement;
   settingsTab: SettingTab;
+  private toggler: any;
+  // private emitter: any;
   // toBedeleteQuery: string[];
 
   async onload() {
     // this.toBedeleteQuery = []
     await this.loadSettings();
 
-    this.registerEvent(this.app.vault.on("modify", (modifiedFile: { path: any; }) => {
-      const activeFile = this.app.workspace.getActiveFile();
-      if (activeFile && activeFile.path == modifiedFile.path) {
-        this.updateFrontmatterHighlighter({ useCache: false });
-      }
-    }))
+    // this.registerEvent(this.app.vault.on("modify", (modifiedFile: { path: any; }) => {
+    //   const activeFile = this.app.workspace.getActiveFile();
+    //   if (activeFile && activeFile.path == modifiedFile.path) {
+    //     this.updateFrontmatterHighlighter({ useCache: false });
+    //   }
+    // }))
     // this.registerEvent(this.app.workspace.on('editor-change', () => {
     //   this.updateFrontmatter({ useCache: false });
     // }))
@@ -56,22 +65,39 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.updateStyles();
     this.registerEditorExtension(this.extensions);
     this.initCSS();
+
+    // this.emitter = new Events();
+    this.setToggler();
+
+  }
+  private setToggler(): void {
+    this.toggler = document.createElement('button');
+    const icon = document.createElement('span');
+    icon.innerText = 'DHFM';
+    this.toggler.classList.add('dynamic-highlights-runner');
+    this.toggler.appendChild(icon);
+    document.body.appendChild(this.toggler);
+    this.toggler.addEventListener('click', async () => {
+      this.updateFrontmatterHighlighter({ useCache: false });
+
+    });
   }
 
   async updateFrontmatterHighlighter({ useCache = true }: { useCache?: boolean; } = {}): Promise<void> {
-    console.log("Func updateFrontmatterHighlighter is called!")
+    debugPrint({ arg: "Func updateFrontmatterHighlighter is called!", debug: this.settings.debug })
     if (!this.settings.frontmatterHighlighter.enableFrontmatterHighlight) return
     // let hasModified = false,currHighlightInFm;
     let { hasModified, result: currHighlightInFm } = await this.getFrontmatter(useCache)
-    console.log("obtained highlighter in fm: " + currHighlightInFm);
-    
+    debugPrint({ arg: "Highlighter keyword in fm: " + currHighlightInFm, debug: this.settings.debug });
+
+    //clear staticHighlighter.queries 
     Object.keys(this.settings.staticHighlighter.queries).forEach(key => {
       if (!this.settings.staticHighlighter.queryOrder.includes(key)) {
         delete this.settings.staticHighlighter.queries[key];
-        hasModified = true
       }
-    })  
-    
+    })
+
+
     if (currHighlightInFm) {
       if (typeof currHighlightInFm === 'string' && currHighlightInFm.match(/[,，]/)) {
         currHighlightInFm = currHighlightInFm.split(/[,，]/).filter(e => e)
@@ -80,7 +106,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
       } else {
         currHighlightInFm = [currHighlightInFm]
       }
-      console.log("Show cleared highlighter in fm: " + currHighlightInFm);
+      debugPrint({ arg: "Show cleared highlighter in fm: " + currHighlightInFm, debug: this.settings.debug });
       const queries = this.settings.frontmatterHighlighter.queries
       const cssLenth = Object.keys(queries).length
       const index = currHighlightInFm.length > cssLenth ? cssLenth : currHighlightInFm.length
@@ -89,12 +115,13 @@ export default class DynamicHighlightsPlugin extends Plugin {
         const tempQuery = Object.assign({}, queries[className]);
         tempQuery.query = currHighlightInFm[i]
         this.settings.staticHighlighter.queries[className] = tempQuery
-        console.log(`addded: Name: ${className}; query: ${currHighlightInFm[i]}`);
+        debugPrint({ arg: `addded: Name: ${className}; query: ${currHighlightInFm[i]}`, debug: this.settings.debug });
         hasModified = true
       }
 
     }
     if (hasModified = true) {
+      new Notice("Highlighter is shown based on Frontmatter!");
       await this.saveSettings();
       this.updateStyles();
       this.updateStaticHighlighter()
@@ -210,6 +237,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
     true
   );
   onunload() {
-
+    // this.toggler.destroy();
   }
 }
