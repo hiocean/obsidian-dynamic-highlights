@@ -1,7 +1,6 @@
 import { Extension, StateEffect } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { debug } from "console";
-import { debounce, MarkdownView, Notice, Plugin, TFile, Events } from "obsidian";
+import { debounce, MarkdownView, Notice, Plugin } from "obsidian";
 import { highlightSelectionMatches, reconfigureSelectionHighlighter } from "./highlighters/selection";
 import { buildStyles, staticHighlighterExtension } from "./highlighters/static";
 import addIcons from "./icons/customIcons";
@@ -9,7 +8,6 @@ import { DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions } from 
 import { SettingTab } from "./settings/ui";
 
 
-// let ;
 export function debugPrint({ arg, debug = false }: { arg: any; debug?: boolean; }): void {
   if (debug) {
     console.log(arg)
@@ -39,7 +37,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
   async onload() {
     // this.toBedeleteQuery = []
     await this.loadSettings();
-
     // this.registerEvent(this.app.vault.on("modify", (modifiedFile: { path: any; }) => {
     //   const activeFile = this.app.workspace.getActiveFile();
     //   if (activeFile && activeFile.path == modifiedFile.path) {

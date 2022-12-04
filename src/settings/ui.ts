@@ -126,7 +126,9 @@ export class SettingTab extends PluginSettingTab {
   private generateGeneralSettings(tabName: string, containerEl: HTMLElement) {
     this.enableFrontmatterUI(containerEl);
     this.setFrontmatterKeywordUI(containerEl);
-    this.selectionHighlightUI(containerEl)
+    this.wordCursorSettingUI(containerEl);
+    this.selectTextSettingUI(containerEl);
+    this.delaySettingUI(containerEl);
     this.debugUI(containerEl)
   }
 
@@ -155,7 +157,7 @@ export class SettingTab extends PluginSettingTab {
 
     const defaultClassName = this.getDefaultFmCSSName(config);
 
-    const classInput = this.textInputUI({ parent: fmDefineQueryUI.controlEl, placeholder: defaultClassName });
+    const classInput = this.textInputEl({ parent: fmDefineQueryUI.controlEl, placeholder: defaultClassName });
 
     const { customCSSWrapper, editor } = this.customCSSUI(fmDefineQueryUI);
     this.fmEditor = editor;
@@ -246,24 +248,14 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private selectionHighlightUI(containerEl: HTMLElement) {
-    containerEl.createEl("h3", {
-      text: "Selection Highlights",
-    });
+    containerEl.createEl("h3", { text: "Selection Highlights", });
 
-    new Setting(containerEl).setName("Highlight all occurrences of the word under the cursor").addToggle(toggle => {
-      toggle.setValue(this.plugin.settings.selectionHighlighter.highlightWordAroundCursor).onChange(value => {
-        this.plugin.settings.selectionHighlighter.highlightWordAroundCursor = value;
-        this.plugin.saveSettings();
-        this.plugin.updateSelectionHighlighter();
-      });
-    });
-    new Setting(containerEl).setName("Highlight all occurrences of the actively selected text").addToggle(toggle => {
-      toggle.setValue(this.plugin.settings.selectionHighlighter.highlightSelectedText).onChange(value => {
-        this.plugin.settings.selectionHighlighter.highlightSelectedText = value;
-        this.plugin.saveSettings();
-        this.plugin.updateSelectionHighlighter();
-      });
-    });
+    this.wordCursorSettingUI(containerEl);
+    this.selectTextSettingUI(containerEl);
+    this.delaySettingUI(containerEl);
+  }
+
+  private delaySettingUI(containerEl: HTMLElement) {
     new Setting(containerEl)
       .setName("Highlight delay")
       .setDesc("The delay, in milliseconds, before selection highlights will appear. Must be greater than 200ms.")
@@ -271,12 +263,34 @@ export class SettingTab extends PluginSettingTab {
         text.inputEl.type = "number";
         text.setValue(String(this.plugin.settings.selectionHighlighter.highlightDelay))
           .onChange(value => {
-          if (parseInt(value) < 200) value = "200";
-          if (parseInt(value) >= 0) this.plugin.settings.selectionHighlighter.highlightDelay = parseInt(value);
-          this.plugin.saveSettings();
-          this.plugin.updateSelectionHighlighter();
-        });
+            if (parseInt(value) < 200)
+              value = "200";
+            if (parseInt(value) >= 0)
+              this.plugin.settings.selectionHighlighter.highlightDelay = parseInt(value);
+            this.plugin.saveSettings();
+            this.plugin.updateSelectionHighlighter();
+          });
       });
+  }
+
+  private selectTextSettingUI(containerEl: HTMLElement) {
+    new Setting(containerEl).setName("Highlight all occurrences of the actively selected text").addToggle(toggle => {
+      toggle.setValue(this.plugin.settings.selectionHighlighter.highlightSelectedText).onChange(value => {
+        this.plugin.settings.selectionHighlighter.highlightSelectedText = value;
+        this.plugin.saveSettings();
+        this.plugin.updateSelectionHighlighter();
+      });
+    });
+  }
+
+  private wordCursorSettingUI(containerEl: HTMLElement) {
+    new Setting(containerEl).setName("Highlight all occurrences of the word under the cursor").addToggle(toggle => {
+      toggle.setValue(this.plugin.settings.selectionHighlighter.highlightWordAroundCursor).onChange(value => {
+        this.plugin.settings.selectionHighlighter.highlightWordAroundCursor = value;
+        this.plugin.saveSettings();
+        this.plugin.updateSelectionHighlighter();
+      });
+    });
   }
 
   private imExportUI(containerEl: HTMLElement) {
@@ -312,19 +326,18 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private staticHighlightUI(config: StaticHighlightOptions, containerEl: HTMLElement) {
+
     containerEl.createEl("h3", { text: "Persistent Highlights", })
-    // .addClass("persistent-highlights");
 
     const staticDefineQueryUI = new Setting(containerEl);
     staticDefineQueryUI.setName("Define Common highlighters").setClass("highlighter-definition").setDesc(`In this section you define a unique highlighter name along with the css.        Make sure to click the save button.`);
 
-    const classInput = this.textInputUI({ parent: staticDefineQueryUI.controlEl });
+    const classInput = this.textInputEl({ parent: staticDefineQueryUI.controlEl });
 
     const colorWrapper = staticDefineQueryUI.controlEl.createDiv("color-wrapper");
     let pickrInstance: Pickr = this.colorWrapperEl(colorWrapper, classInput);
 
     const { marks, queryTypeInput, queryInput } = this.queryUI(staticDefineQueryUI);
-
 
     const { customCSSWrapper, editor } = this.customCSSUI(staticDefineQueryUI);
     this.staticEditor = editor;
@@ -342,7 +355,6 @@ export class SettingTab extends PluginSettingTab {
           mark: enabledMarks,
           css: this.staticEditor.state.doc.toString(),
         };
-        // debugPrint("class name is :" + aquery.class)
       }
     });
 
@@ -375,13 +387,13 @@ export class SettingTab extends PluginSettingTab {
 
 
 
-  private queryUI(staticDefineQueryUI: Setting): {
+  private queryUI(parentSetting: Setting): {
     marks: Partial<Record<markTypes, { element: HTMLElement; component: ToggleComponent; }>>;
     queryTypeInput: ToggleComponent;
     queryInput: TextComponent;
   } {
-    const queryWrapper = staticDefineQueryUI.controlEl.createDiv("query-wrapper");
-    const queryInput = this.textInputUI({ parent: queryWrapper, placeholder: "search" });
+    const queryWrapper = parentSetting.controlEl.createDiv("query-wrapper");
+    const queryInput = this.textInputEl({ parent: queryWrapper, placeholder: "search query" });
     const queryTypeInput = new ToggleComponent(queryWrapper);
     queryTypeInput.toggleEl.addClass("highlighter-settings-regex");
     queryTypeInput.toggleEl.ariaLabel = "Enable Regex";
@@ -395,11 +407,11 @@ export class SettingTab extends PluginSettingTab {
         marks.group?.element.hide();
       }
     });
-    const marks = this.buildMarkerTypes(staticDefineQueryUI.controlEl);
+    const marks = this.buildMarkerTypes(parentSetting.controlEl);
     return { marks, queryTypeInput, queryInput };
   }
 
-  private textInputUI({ parent,
+  private textInputEl({ parent,
     placeholder = "Highlighter name",
     ariaLabel = "",
     addClass = "highlighter-name" }: {
@@ -526,11 +538,11 @@ export class SettingTab extends PluginSettingTab {
               await this.plugin.saveSettings();
               this.plugin.updateStyles();
               if ('enableFrontmatterHighlight' in config) {
-                debugPrint({ arg: "call updateFrontmatterHighlighter!" });
+                debugPrint({ arg: "call updateFrontmatterHighlighter!", debug: this.plugin.settings.debug });
                 this.plugin.updateFrontmatterHighlighter();
               } else {
                 this.plugin.updateStaticHighlighter();
-                debugPrint({ arg: "call updateStaticHighlighter!" });
+                debugPrint({ arg: "call updateStaticHighlighter!", debug: this.plugin.settings.debug });
               }
               highlightersContainer.querySelector(`#dh-${highlighter}`)!.detach();
             });
@@ -652,10 +664,3 @@ function editorFromTextArea(textarea: HTMLTextAreaElement, extensions: Extension
     });
   return view;
 }
-
-
-// const tabNameToTabIconId: Record<string, string> = {
-//   General: 'chrome',
-//   Search: 'search',
-//   Theme: 'brush',
-// };
