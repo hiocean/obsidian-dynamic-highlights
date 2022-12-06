@@ -2,7 +2,7 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-12-06 16:51:47
+ * @LastEditTime: 2022-12-06 17:16:55
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
@@ -19,6 +19,7 @@ import { ignoredWords } from "./ignoredWords";
 //   range: { from: number; to: number };
 // }
 
+export type TabContentInfo = { content: HTMLElement, heading: HTMLElement, navButton: HTMLElement }
 export const _RUNNER = 'dynamic-highlights-runner';
 export type markTypes = "line" | "match" | "group" | "start" | "end";
 

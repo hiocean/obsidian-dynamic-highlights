@@ -15,16 +15,16 @@ import {
 } from "obsidian";
 import Sortable from "sortablejs";
 import { basicSetup } from "src/editor/extensions";
-import DynamicHighlightsPlugin, { debugPrint } from "../main";
+import DynamicHighlightsPlugin from "../main";
 import { ExportModal } from "./export";
 import { ImportModal } from "./import";
-import { FrontmatterHighlightOptions, MarkItems, MarkTypes, markTypes } from "./settings";
+import { FrontmatterHighlightOptions, MarkItems, MarkTypes, markTypes, TabContentInfo } from "./settings";
 import { materialPalenight } from "../editor/theme-dark";
 import { basicLightTheme } from "../editor/theme-light";
 import { StaticHighlightOptions } from "src/highlighters/static";
 import { SearchQuery } from "./settings";
+import { debugPrint } from "src/utils/funcs";
 
-type TabContentInfo = { content: HTMLElement, heading: HTMLElement, navButton: HTMLElement }
 export class SettingTab extends PluginSettingTab {
   plugin: DynamicHighlightsPlugin;
   fmEditor: EditorView;

@@ -9,15 +9,9 @@ import DynamicHighlightsPlugin from "src/main";
 import { SearchQueries } from "src/settings/settings";
 import { StyleSpec } from "style-mod";
 import { RegExpCursor } from "./regexp-cursor";
+import { limitedEval } from "src/utils/funcs";
 
-function limitedEval({ formular, localVariables = {} }: { formular: string; localVariables?: {}; }): any {
-  try {
-    return new Function(...Object.keys(localVariables), "" + formular)(...Object.values(localVariables));
-  }
-  catch (e) { 
-    return e
-  }
-}
+
 
 export class inlineJsWidget extends WidgetType {
   text: string
