@@ -31,21 +31,11 @@ export default class DynamicHighlightsPlugin extends Plugin {
   styleEl: HTMLElement;
   settingsTab: SettingTab;
   private toggler: any;
-  // private emitter: any;
-  // toBedeleteQuery: string[];
+
 
   async onload() {
-    // this.toBedeleteQuery = []
+ 
     await this.loadSettings();
-    // this.registerEvent(this.app.vault.on("modify", (modifiedFile: { path: any; }) => {
-    //   const activeFile = this.app.workspace.getActiveFile();
-    //   if (activeFile && activeFile.path == modifiedFile.path) {
-    //     this.updateFrontmatterHighlighter({ useCache: false });
-    //   }
-    // }))
-    // this.registerEvent(this.app.workspace.on('editor-change', () => {
-    //   this.updateFrontmatter({ useCache: false });
-    // }))
 
     this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
       this.updateFrontmatterHighlighter();
@@ -62,8 +52,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.updateStyles();
     this.registerEditorExtension(this.extensions);
     this.initCSS();
-
-    // this.emitter = new Events();
     this.setToggler();
 
   }
@@ -120,6 +108,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     if (hasModified = true) {
       new Notice("Highlighter is shown based on Frontmatter!");
       await this.saveSettings();
+      this.updateCustomCSS();
       this.updateStyles();
       this.updateStaticHighlighter()
     }

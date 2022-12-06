@@ -2,7 +2,7 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-12-04 15:18:41
+ * @LastEditTime: 2022-12-06 11:47:27
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
@@ -13,11 +13,11 @@ import { StaticHighlightOptions } from "src/highlighters/static";
 import { SelectionHighlightOptions } from "../highlighters/selection";
 import { ignoredWords } from "./ignoredWords";
 
-interface SearchConfig {
-  value: string;
-  type: string;
-  range: { from: number; to: number };
-}
+// interface SearchConfig {
+//   value: string;
+//   type: string;
+//   range: { from: number; to: number };
+// }
 export type markTypes = "line" | "match" | "group" | "start" | "end";
 
 export type SettingValue = number | string | boolean;
