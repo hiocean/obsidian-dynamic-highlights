@@ -4,21 +4,10 @@ import { debounce, MarkdownView, Notice, Plugin } from "obsidian";
 import { highlightSelectionMatches, reconfigureSelectionHighlighter } from "./highlighters/selection";
 import { buildStyles, staticHighlighterExtension } from "./highlighters/static";
 import addIcons from "./icons/customIcons";
-import { DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions, _RUNNER } from "./settings/settings";
+import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions, _RUNNER } from "./settings/settings";
 import { SettingTab } from "./settings/ui";
+import { debugPrint } from "./utils/funcs";
 
-
-export function debugPrint({ arg, debug = false }: { arg: any; debug?: boolean; }): void {
-  if (debug) {
-    console.log(arg)
-  }
-}
-
-
-interface CustomCSS {
-  css: string;
-  enabled: boolean;
-}
 
 export default class DynamicHighlightsPlugin extends Plugin {
   settings: DynamicHighlightsSettings;
@@ -32,18 +21,19 @@ export default class DynamicHighlightsPlugin extends Plugin {
   settingsTab: SettingTab;
   private toggler: any;
 
-
   async onload() {
-
-    await this.loadSettings();
-    this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
-      this.updateFrontmatterHighlighter();
-    }))
+    // load data
+    await this.loadSettings(); 
     addIcons();
 
+    // generate UIs
     this.settingsTab = new SettingTab(this.app, this);
     this.addSettingTab(this.settingsTab);
+    this.addRibbonIcon('dyht', 'Enable FM highlighter', async (evt: MouseEvent) => {
+      await this.updateToggler();
+    });
 
+    // update exts
     this.staticHighlighter = staticHighlighterExtension(this);
     this.extensions = [];
     this.updateSelectionHighlighter();
@@ -51,9 +41,11 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.updateStyles();
     this.registerEditorExtension(this.extensions);
     this.initCSS();
-    this.addRibbonIcon('dyht', 'Enable FM highlighter', async (evt: MouseEvent) => {
-      await this.updateToggler();
-    });
+
+    // listen the change of leaf
+    this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
+      this.updateFrontmatterHighlighter();
+    }))
   }
 
   private async updateToggler() {
@@ -67,7 +59,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
       this.delToggler();
     }
   }
-
+  
   private addToggler(): void {
     this.toggler = document.createElement('button');
     const icon = document.createElement('span');
@@ -79,7 +71,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
     });
     document.body.appendChild(this.toggler);
   }
-
 
   private delToggler() {
     // this.toggler.removeEventListener('click', async () => {
@@ -94,7 +85,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
     // }
    
   }
-
 
   async updateFrontmatterHighlighter({ useCache = true }: { useCache?: boolean; } = {}): Promise<void> {
     debugPrint({ arg: "Func updateFrontmatterHighlighter is called!", debug: this.settings.debug })
@@ -142,6 +132,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     }
 
   }
+
   async getFrontmatter(useCache: boolean = true): Promise<{ hasModified: boolean; result: string | string[] | undefined; }> {
     let hasModified = false; let result: string | string[] | undefined;
     const tf = this.app.workspace.getActiveFile();
@@ -250,7 +241,8 @@ export default class DynamicHighlightsPlugin extends Plugin {
     1000,
     true
   );
+
   onunload() {
-    // this.toggler.destroy();
+    this.delToggler();
   }
 }

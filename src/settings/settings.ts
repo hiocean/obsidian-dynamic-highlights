@@ -2,7 +2,7 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-12-06 16:37:18
+ * @LastEditTime: 2022-12-06 16:51:47
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
@@ -88,6 +88,10 @@ export function setAttributes(element: any, attributes: any) {
   for (let key in attributes) {
     element.setAttribute(key, attributes[key]);
   }
+}
+export interface CustomCSS {
+  css: string;
+  enabled: boolean;
 }
 
 
