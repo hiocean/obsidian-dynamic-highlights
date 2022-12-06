@@ -205,7 +205,7 @@ export class SettingTab extends PluginSettingTab {
       .addText(text => {
         text.inputEl.type = "string";
         // text.setPlaceholder(defaultfmkw);
-        // text.inputEl.addClass("highlighter-name" );
+        text.inputEl.addClass("highlighter-name" );
         text.setValue(defaultfmkw).onChange(value => {
           this.plugin.settings.frontmatterHighlighter.frontmatterHighlightKeywords = value;
           this.plugin.saveSettings();

@@ -60,9 +60,9 @@
 
 /* #region color selection */
 
-/* .dynamic-highlights-settings .highlighter-name {
+.dynamic-highlights-settings .highlighter-name {
   width: 20ch;
-} */
+}
 
 .dynamic-highlights-settings .color-wrapper {
   display: flex;

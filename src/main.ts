@@ -4,7 +4,7 @@ import { debounce, MarkdownView, Notice, Plugin } from "obsidian";
 import { highlightSelectionMatches, reconfigureSelectionHighlighter } from "./highlighters/selection";
 import { buildStyles, staticHighlighterExtension } from "./highlighters/static";
 import addIcons from "./icons/customIcons";
-import { DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions } from "./settings/settings";
+import { DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions, _RUNNER } from "./settings/settings";
 import { SettingTab } from "./settings/ui";
 
 
@@ -34,17 +34,16 @@ export default class DynamicHighlightsPlugin extends Plugin {
 
 
   async onload() {
- 
-    await this.loadSettings();
 
+    await this.loadSettings();
     this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
       this.updateFrontmatterHighlighter();
     }))
-
+    addIcons();
 
     this.settingsTab = new SettingTab(this.app, this);
     this.addSettingTab(this.settingsTab);
-    addIcons();
+
     this.staticHighlighter = staticHighlighterExtension(this);
     this.extensions = [];
     this.updateSelectionHighlighter();
@@ -52,21 +51,50 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.updateStyles();
     this.registerEditorExtension(this.extensions);
     this.initCSS();
-    this.setToggler();
-
-  }
-  private setToggler(): void {
-    this.toggler = document.createElement('button');
-    const icon = document.createElement('span');
-    icon.innerText = 'DHFM';
-    this.toggler.classList.add('dynamic-highlights-runner');
-    this.toggler.appendChild(icon);
-    document.body.appendChild(this.toggler);
-    this.toggler.addEventListener('click', async () => {
-      this.updateFrontmatterHighlighter({ useCache: false });
-
+    this.addRibbonIcon('dyht', 'Enable FM highlighter', async (evt: MouseEvent) => {
+      await this.updateToggler();
     });
   }
+
+  private async updateToggler() {
+    const togglerEnabled = this.settings.frontmatterHighlighter.enableFrontmatterToggler;
+    this.settings.frontmatterHighlighter.enableFrontmatterToggler = !togglerEnabled;
+    await this.saveSettings();
+    if (!togglerEnabled) {
+      this.addToggler();
+      new Notice("Toggler is enabled.");
+    } else {
+      this.delToggler();
+    }
+  }
+
+  private addToggler(): void {
+    this.toggler = document.createElement('button');
+    const icon = document.createElement('span');
+    icon.innerText = this.settings.frontmatterHighlighter.togglerIcon;
+    this.toggler.classList.add(_RUNNER);
+    this.toggler.appendChild(icon);
+    this.toggler.addEventListener('click', async () => {
+      this.updateFrontmatterHighlighter({ useCache: false });
+    });
+    document.body.appendChild(this.toggler);
+  }
+
+
+  private delToggler() {
+    // this.toggler.removeEventListener('click', async () => {
+    //   this.updateFrontmatterHighlighter({ useCache: false });
+    // });
+    // document.body.removeChild(this.toggler);
+    this.toggler.remove()
+    new Notice("Toggler is disabled.")
+    // const toggler: HTMLElement = document.querySelector(`.${_RUNNER}`)!;
+    // if (toggler) {
+    //   toggler.remove(); new Notice("toggler disabled.")
+    // }
+   
+  }
+
 
   async updateFrontmatterHighlighter({ useCache = true }: { useCache?: boolean; } = {}): Promise<void> {
     debugPrint({ arg: "Func updateFrontmatterHighlighter is called!", debug: this.settings.debug })

@@ -2,7 +2,7 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-12-06 11:47:27
+ * @LastEditTime: 2022-12-06 16:37:18
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
@@ -18,6 +18,8 @@ import { ignoredWords } from "./ignoredWords";
 //   type: string;
 //   range: { from: number; to: number };
 // }
+
+export const _RUNNER = 'dynamic-highlights-runner';
 export type markTypes = "line" | "match" | "group" | "start" | "end";
 
 export type SettingValue = number | string | boolean;
@@ -43,7 +45,8 @@ export type HighlighterOptions = SelectionHighlightOptions | StaticHighlightOpti
 
 
 export type FrontmatterHighlightOptions = {
-
+  togglerIcon:string
+  enableFrontmatterToggler: boolean;
   enableFrontmatterHighlight: boolean;
   frontmatterHighlightKeywords: string;
   queries: SearchQueries;
@@ -72,6 +75,8 @@ export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
     queryOrder: [],
   },
   frontmatterHighlighter: {
+    togglerIcon:'🌟',
+    enableFrontmatterToggler:false,
     enableFrontmatterHighlight: true,
     frontmatterHighlightKeywords: "highlighter",
     queries: {},
