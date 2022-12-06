@@ -2,14 +2,14 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-12-06 17:16:55
+ * @LastEditTime: 2022-12-06 19:15:34
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
  * Copyright (c) 2022 by hiocean, All Rights Reserved. 
  */
 import { ToggleComponent } from "obsidian";
-import { StaticHighlightOptions } from "src/highlighters/static";
+
 import { SelectionHighlightOptions } from "../highlighters/selection";
 import { ignoredWords } from "./ignoredWords";
 
@@ -20,7 +20,7 @@ import { ignoredWords } from "./ignoredWords";
 // }
 
 export type TabContentInfo = { content: HTMLElement, heading: HTMLElement, navButton: HTMLElement }
-export const _RUNNER = 'dynamic-highlights-runner';
+
 export type markTypes = "line" | "match" | "group" | "start" | "end";
 
 export type SettingValue = number | string | boolean;
@@ -41,24 +41,31 @@ export interface SearchQueries {
   [key: string]: SearchQuery;
 }
 
-export type HighlighterOptions = SelectionHighlightOptions | StaticHighlightOptions;
-// export type ConfigHighlighterOptions = FrontmatterHighlightOptions | StaticHighlightOptions;
-
-
-export type FrontmatterHighlightOptions = {
-  togglerIcon:string
-  enableFrontmatterToggler: boolean;
-  enableFrontmatterHighlight: boolean;
-  frontmatterHighlightKeywords: string;
+export interface BaseHighlightOptions {
   queries: SearchQueries;
   queryOrder: string[];
-  
+};
+
+
+export interface INJSOptions extends BaseHighlightOptions {
+  enabled: boolean;
+  keyword: string;
+};
+
+export interface FrontmatterHighlightOptions extends BaseHighlightOptions {
+  togglerIcon: string
+  enableToggler: boolean;
+  enabled: boolean;
+  keyword: string;
+
+
 };
 export interface DynamicHighlightsSettings {
   debug: boolean;
   selectionHighlighter: SelectionHighlightOptions;
-  staticHighlighter: StaticHighlightOptions;
-  frontmatterHighlighter:FrontmatterHighlightOptions;
+  staticHighlighter: BaseHighlightOptions;
+  frontmatterHighlighter: FrontmatterHighlightOptions;
+  injsOptions: INJSOptions;
 }
 
 export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
@@ -76,12 +83,18 @@ export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
     queryOrder: [],
   },
   frontmatterHighlighter: {
-    togglerIcon:'🌟',
-    enableFrontmatterToggler:false,
-    enableFrontmatterHighlight: true,
-    frontmatterHighlightKeywords: "highlighter",
+    togglerIcon: '🌟',
+    enableToggler: false,
+    enabled: true,
+    keyword: "highlighter",
     queries: {},
     queryOrder: [],
+  },
+  injsOptions: {
+    enabled: true,
+    keyword: "injs",
+    queries: {},
+    queryOrder: []
   }
 };
 

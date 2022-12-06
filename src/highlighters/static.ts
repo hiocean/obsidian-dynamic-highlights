@@ -1,12 +1,12 @@
 // originally from: https://github.com/codemirror/search/blob/main/src/selection-match.ts
 import { SearchCursor } from "@codemirror/search";
-import { combineConfig, Compartment, Extension, Facet, Range } from "@codemirror/state";
+import { combineConfig, Extension, Facet, Range } from "@codemirror/state";
 import { syntaxTree, tokenClassNodeProp } from "@codemirror/language";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
 import { cloneDeep } from "lodash";
 import type { RegExpExecArray } from "regexp-match-indices/types";
 import DynamicHighlightsPlugin from "src/main";
-import { SearchQueries } from "src/settings/settings";
+import { BaseHighlightOptions } from "src/settings/settings";
 import { StyleSpec } from "style-mod";
 import { RegExpCursor } from "./regexp-cursor";
 import { limitedEval } from "src/utils/funcs";
@@ -30,18 +30,14 @@ export class inlineJsWidget extends WidgetType {
 }
 
 
-export type StaticHighlightOptions = {
-  queries: SearchQueries;
-  queryOrder: string[];
-};
 
-const defaultOptions: StaticHighlightOptions = {
+const defaultOptions: BaseHighlightOptions = {
   queries: {},
   queryOrder: [],
 };
 
-export const staticHighlightConfig = Facet.define<StaticHighlightOptions, Required<StaticHighlightOptions>>({
-  combine(options: readonly StaticHighlightOptions[]) {
+export const staticHighlightConfig = Facet.define<BaseHighlightOptions, Required<BaseHighlightOptions>>({
+  combine(options: readonly BaseHighlightOptions[]) {
     return combineConfig(options, defaultOptions, {
       queries: (a, b) => a || b,
       queryOrder: (a, b) => a || b,

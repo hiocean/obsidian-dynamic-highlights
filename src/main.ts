@@ -4,7 +4,8 @@ import { debounce, MarkdownView, Notice, Plugin } from "obsidian";
 import { highlightSelectionMatches, reconfigureSelectionHighlighter } from "./highlighters/selection";
 import { buildStyles, staticHighlighterExtension } from "./highlighters/static";
 import addIcons from "./icons/customIcons";
-import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions, _RUNNER } from "./settings/settings";
+import { DH_RUNNER } from "./settings/constant";
+import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions,  } from "./settings/settings";
 import { SettingTab } from "./settings/ui";
 import { debugPrint } from "./utils/funcs";
 
@@ -49,8 +50,8 @@ export default class DynamicHighlightsPlugin extends Plugin {
   }
 
   private async updateToggler() {
-    const togglerEnabled = this.settings.frontmatterHighlighter.enableFrontmatterToggler;
-    this.settings.frontmatterHighlighter.enableFrontmatterToggler = !togglerEnabled;
+    const togglerEnabled = this.settings.frontmatterHighlighter.enableToggler;
+    this.settings.frontmatterHighlighter.enableToggler = !togglerEnabled;
     await this.saveSettings();
     if (!togglerEnabled) {
       this.addToggler();
@@ -64,7 +65,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.toggler = document.createElement('button');
     const icon = document.createElement('span');
     icon.innerText = this.settings.frontmatterHighlighter.togglerIcon;
-    this.toggler.classList.add(_RUNNER);
+    this.toggler.classList.add(DH_RUNNER);
     this.toggler.appendChild(icon);
     this.toggler.addEventListener('click', async () => {
       this.updateFrontmatterHighlighter({ useCache: false });
@@ -88,7 +89,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
 
   async updateFrontmatterHighlighter({ useCache = true }: { useCache?: boolean; } = {}): Promise<void> {
     debugPrint({ arg: "Func updateFrontmatterHighlighter is called!", debug: this.settings.debug })
-    if (!this.settings.frontmatterHighlighter.enableFrontmatterHighlight) return
+    if (!this.settings.frontmatterHighlighter.enabled) return
     // let hasModified = false,currHighlightInFm;
     let { hasModified, result: currHighlightInFm } = await this.getFrontmatter(useCache)
     debugPrint({ arg: "Highlighter keyword in fm: " + currHighlightInFm, debug: this.settings.debug });
@@ -137,7 +138,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     let hasModified = false; let result: string | string[] | undefined;
     const tf = this.app.workspace.getActiveFile();
     if (tf) {
-      const highlighterKw = this.settings.frontmatterHighlighter.frontmatterHighlightKeywords;
+      const highlighterKw = this.settings.frontmatterHighlighter.keyword;
       const cachedFrontmatter = this.app.metadataCache.getFileCache(tf)?.frontmatter
       if (useCache) { result = cachedFrontmatter![highlighterKw] }
 
