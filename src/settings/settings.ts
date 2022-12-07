@@ -2,14 +2,14 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-12-07 11:35:41
+ * @LastEditTime: 2022-12-07 17:25:32
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
  * Copyright (c) 2022 by hiocean, All Rights Reserved. 
  */
 import { ToggleComponent } from "obsidian";
-import { SelectionHighlightOptions } from "../highlighters/selection";
+
 import { ignoredWords } from "./ignoredWords";
 
 
@@ -25,9 +25,13 @@ export interface SearchQuery {
 export interface SearchQueries {
   [key: string]: SearchQuery;
 }
-export interface BaseHighlightOptions {
-  type: string;
-    queries: SearchQueries;
+
+export interface BasOptions {
+  type: OptionName;
+}
+export interface BaseHighlightOptions extends BasOptions {
+
+  queries: SearchQueries;
   queryOrder: string[];
 };
 export interface INJSOptions extends BaseHighlightOptions {
@@ -48,10 +52,41 @@ export interface DynamicHighlightsSettings {
   injsOptions: INJSOptions;
 }
 
+export interface SelectionHighlightOptions extends BasOptions {
+  /// Determines whether, when nothing is selected, the word around
+  /// the cursor is matched instead. Defaults to false.
+  highlightWordAroundCursor: boolean;
+  highlightSelectedText: boolean;
+  /// The minimum length of the selection before it is highlighted.
+  /// Defaults to 1 (always highlight non-cursor selections).
+  minSelectionLength: number;
+  /// The amount of matches (in the viewport) at which to disable
+  /// highlighting. Defaults to 100.
+  maxMatches: number;
+  ignoredWords: string;
+  highlightDelay: number;
+
+};
+
+export interface OptionType {
+  Selection: OptionName;
+  Static: OptionName;
+  Frontmatter: OptionName;
+  Inlinejs: OptionName;
+}
+
+export const OptionTypeNames: OptionType = {
+  Selection: "selection",
+  Static: "static",
+  Frontmatter: "fm",
+  Inlinejs: "injs"
+};
+
+export type OptionName = "selection" | "static" | "fm" |"injs" ;
 export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
   debug: false,
   selectionHighlighter: {
-    // type: "selection",
+    type: "selection",
     highlightWordAroundCursor: true,
     highlightSelectedText: true,
     maxMatches: 100,
@@ -60,12 +95,12 @@ export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
     ignoredWords: ignoredWords,
   },
   staticHighlighter: {
-    type:"static",
+    type: "static",
     queries: {},
     queryOrder: [],
   },
   frontmatterHighlighter: {
-    type:"fm",
+    type: "fm",
     togglerIcon: '🌟',
     enableToggler: false,
     enabled: true,
@@ -74,7 +109,7 @@ export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
     queryOrder: [],
   },
   injsOptions: {
-    type:"injs",
+    type: "injs",
     enabled: true,
     keyword: "injs",
     queries: {},

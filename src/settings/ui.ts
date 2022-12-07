@@ -22,9 +22,7 @@ import { BaseHighlightOptions, FrontmatterOptions, INJSOptions, MarkItems, MarkT
 import { materialPalenight } from "../editor/theme-dark";
 import { basicLightTheme } from "../editor/theme-light";
 import { SearchQuery } from "./settings";
-import { debugPrint } from "src/utils/funcs";
 import { DH_Settings } from "./constant";
-import { config } from "process";
 
 
 const DHS_Header = 'dynamic-highlights-settings-header';
@@ -290,8 +288,8 @@ export class SettingTab extends PluginSettingTab {
         text.inputEl.addClass(DHS_Name);
         text.setValue(defaultfmkw).onChange(value => {
           config.keyword = value;
-          this.plugin.saveSettings();
-          this.plugin.updateFrontmatterHighlighter();//todo
+          // this.plugin.saveSettings();
+          this.plugin.update(config.type);//todo
         });
       });
   }
@@ -304,8 +302,9 @@ export class SettingTab extends PluginSettingTab {
           .setValue(config.enabled)
           .onChange(value => {
             config.enabled = value;
-            this.plugin.saveSettings();
-            this.plugin.updateFrontmatterHighlighter();//todo
+            this.plugin.update(config.type)
+            // this.plugin.saveSettings();
+            // this.plugin.updateFrontmatterHighlighter();//todo
           });
       });
   }
@@ -324,8 +323,8 @@ export class SettingTab extends PluginSettingTab {
         text.inputEl.addClass(DHS_ignore);
         text.setValue(this.plugin.settings.selectionHighlighter.ignoredWords).onChange(async (value) => {
           this.plugin.settings.selectionHighlighter.ignoredWords = value;
-          await this.plugin.saveSettings();
-          this.plugin.updateSelectionHighlighter();
+          // await this.plugin.saveSettings();
+          this.plugin.update(this.plugin.settings.selectionHighlighter.type);
         });
       });
   }
@@ -350,8 +349,9 @@ export class SettingTab extends PluginSettingTab {
               value = "200";
             if (parseInt(value) >= 0)
               this.plugin.settings.selectionHighlighter.highlightDelay = parseInt(value);
-            this.plugin.saveSettings();
-            this.plugin.updateSelectionHighlighter();
+            // this.plugin.saveSettings();
+            // this.plugin.updateSelectionHighlighter();
+            this.plugin.update(this.plugin.settings.selectionHighlighter.type)
           });
       });
   }
@@ -361,8 +361,10 @@ export class SettingTab extends PluginSettingTab {
       .addToggle(toggle => {
         toggle.setValue(this.plugin.settings.selectionHighlighter.highlightSelectedText).onChange(value => {
           this.plugin.settings.selectionHighlighter.highlightSelectedText = value;
-          this.plugin.saveSettings();
-          this.plugin.updateSelectionHighlighter();
+          // this.plugin.saveSettings();
+          // this.plugin.updateSelectionHighlighter();
+          this.plugin.update(this.plugin.settings.selectionHighlighter.type)
+
         });
       });
   }
@@ -372,8 +374,9 @@ export class SettingTab extends PluginSettingTab {
       .addToggle(toggle => {
         toggle.setValue(this.plugin.settings.selectionHighlighter.highlightWordAroundCursor).onChange(value => {
           this.plugin.settings.selectionHighlighter.highlightWordAroundCursor = value;
-          this.plugin.saveSettings();
-          this.plugin.updateSelectionHighlighter();
+          // this.plugin.saveSettings();
+          // this.plugin.updateSelectionHighlighter();
+          this.plugin.update(this.plugin.settings.selectionHighlighter.type)
         });
       });
   }
@@ -550,16 +553,17 @@ export class SettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
           console.log(config.type)
 
-          if (config.type == "fm") {
-            this.plugin.updateFrontmatterHighlighter();
-          } else if (config.type == "injs") {
-            console.log("here")
-            this.plugin.updateInjsOptions();
-          } else {
-            this.plugin.updateStaticHighlighter();
-          }
-          this.plugin.updateCustomCSS();
-          this.plugin.updateStyles();
+          // if (config.type == "fm") {
+          //   this.plugin.updateFrontmatterHighlighter();
+          // } else if (config.type == "injs") {
+          //   console.log("here")
+          //   this.plugin.updateInjsOptions();
+          // } else {
+          //   this.plugin.updateStaticHighlighter();
+          // }
+          // this.plugin.updateCustomCSS();
+          // this.plugin.updateStyles();
+          this.plugin.update(config.type)
           this.display();
         } else if (className && !aquery.color) {
           new Notice("Highlighter hex code missing");
@@ -627,13 +631,14 @@ export class SettingTab extends PluginSettingTab {
               config.queryOrder.remove(highlighter);
               await this.plugin.saveSettings();
               this.plugin.updateStyles();
-              if ('enableFrontmatterHighlight' in config) {
-                debugPrint({ arg: "call updateFrontmatterHighlighter!", debug: this.plugin.settings.debug });
-                this.plugin.updateFrontmatterHighlighter();
-              } else {
-                this.plugin.updateStaticHighlighter();
-                debugPrint({ arg: "call updateStaticHighlighter!", debug: this.plugin.settings.debug });
-              }
+              // if ('enableFrontmatterHighlight' in config) {
+              //   debugPrint({ arg: "call updateFrontmatterHighlighter!", debug: this.plugin.settings.debug });
+              //   this.plugin.updateFrontmatterHighlighter();
+              // } else {
+              //   this.plugin.updateStaticHighlighter();
+              //   debugPrint({ arg: "call updateStaticHighlighter!", debug: this.plugin.settings.debug });
+              // }
+              this.plugin.update(config.type)
               highlightersContainer.querySelector(`#dh-${highlighter}`)!.detach();
             });
         });
@@ -694,7 +699,7 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private sortableContainerEl(highlightersContainer: HTMLDivElement,
-    config: StaticHighlightOptions): Sortable {
+    config: BaseHighlightOptions): Sortable {
     return Sortable.create(highlightersContainer, {
       animation: 500,
       ghostClass: "highlighter-sortable-ghost",

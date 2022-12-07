@@ -5,7 +5,7 @@ import { highlightSelectionMatches, reconfigureSelectionHighlighter } from "./hi
 import { buildStyles, staticHighlighterExtension } from "./highlighters/static";
 import addIcons from "./icons/customIcons";
 import { DH_RUNNER } from "./settings/constant";
-import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions, } from "./settings/settings";
+import { BasOptions, CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, BaseHighlightOptions, OptionName, OptionTypeNames, SelectionHighlightOptions } from "./settings/settings";
 import { SettingTab } from "./settings/ui";
 import { debugPrint } from "./utils/funcs";
 
@@ -37,18 +37,31 @@ export default class DynamicHighlightsPlugin extends Plugin {
     // update exts
     this.staticHighlighter = staticHighlighterExtension(this);
     this.extensions = [];
-    
-    this.updateSelectionHighlighter();
-    this.updateStaticHighlighter();
-    this.updateStyles();
-    this.registerEditorExtension(this.extensions);
-    this.initCSS();
-    await this.updateInjsOptions();
+
+    await this.update();
 
     // listen the change of leaf
+
     this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
-      this.updateFrontmatterHighlighter();
+      this.updateFrontmatterHighlighter({ useCache: false });
+      this.update(OptionTypeNames.Frontmatter);
     }))
+  }
+
+  async update(configType?: OptionName) {
+    await this.saveSettings();
+    if (!configType) this.initCSS();
+    if (!configType || configType == OptionTypeNames.Frontmatter) this.updateFrontmatterHighlighter();
+    if (!configType || configType == OptionTypeNames.Inlinejs) this.updateInjsOptions();
+    if (!configType || configType == OptionTypeNames.Selection) this.updateSelectionHighlighter();
+    if (!configType || configType != OptionTypeNames.Selection) {
+      this.updateStaticHighlighter();
+
+      this.updateStyles();
+      this.updateCustomCSS();
+      this.registerEditorExtension(this.extensions);
+    }
+    this.app.workspace.updateOptions();
   }
 
   private async updateToggler() {
@@ -71,6 +84,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.toggler.appendChild(icon);
     this.toggler.addEventListener('click', async () => {
       this.updateFrontmatterHighlighter({ useCache: false });
+      this.update(OptionTypeNames.Static)
     });
     document.body.appendChild(this.toggler);
   }
@@ -95,12 +109,8 @@ export default class DynamicHighlightsPlugin extends Plugin {
     const config = this.settings.injsOptions
     if (!config.enabled) return
     Object.assign(this.settings.staticHighlighter.queries, config.queries);
-    new Notice("addeddddd")
-    console.dir(this.settings.staticHighlighter.queries)
-    await this.saveSettings();
-    this.updateCustomCSS();
-    this.updateStyles();
-    this.updateStaticHighlighter()
+    // new Notice("addeddddd")
+    // console.dir(this.settings.staticHighlighter.queries)
   }
 
 
@@ -141,13 +151,9 @@ export default class DynamicHighlightsPlugin extends Plugin {
       }
 
     }
-    if (hasModified = true) {
-      new Notice("Highlighter is shown based on Frontmatter!");
-      await this.saveSettings();
-      this.updateCustomCSS();
-      this.updateStyles();
-      this.updateStaticHighlighter()
-    }
+    // if (hasModified = true) {
+    //   new Notice("Highlighter is shown based on Frontmatter!");
+    // }
 
   }
 
@@ -217,21 +223,21 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.extensions.remove(this.styles);
     this.styles = buildStyles(this);
     this.extensions.push(this.styles);
-    this.app.workspace.updateOptions();
+    // this.app.workspace.updateOptions();
   }
 
   updateStaticHighlighter() {
     this.extensions.remove(this.staticHighlighter);
     this.staticHighlighter = staticHighlighterExtension(this);
     this.extensions.push(this.staticHighlighter);
-    this.app.workspace.updateOptions();
+    // this.app.workspace.updateOptions();
   }
 
   updateSelectionHighlighter() {
     this.extensions.remove(this.selectionHighlighter);
     this.selectionHighlighter = highlightSelectionMatches(this.settings.selectionHighlighter)
     this.extensions.push(this.selectionHighlighter);
-    this.app.workspace.updateOptions();
+
   }
 
   iterateCM6(callback: (editor: EditorView) => unknown) {
@@ -243,8 +249,8 @@ export default class DynamicHighlightsPlugin extends Plugin {
   }
 
   updateConfig = debounce(
-    (type: string, config: HighlighterOptions) => {
-      let reconfigure: (config: HighlighterOptions) => StateEffect<unknown>;
+    (type: string, config: BaseHighlightOptions | SelectionHighlightOptions) => {
+      let reconfigure: (config: BaseHighlightOptions | SelectionHighlightOptions) => StateEffect<unknown>;
       if (type === "selection") {
         reconfigure = reconfigureSelectionHighlighter;
       } else {
