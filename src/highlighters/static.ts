@@ -10,6 +10,7 @@ import { BaseHighlightOptions } from "src/settings/settings";
 import { StyleSpec } from "style-mod";
 import { RegExpCursor } from "./regexp-cursor";
 import { limitedEval } from "src/utils/funcs";
+import { Notice } from "obsidian";
 
 
 
@@ -48,6 +49,8 @@ export const staticHighlightConfig = Facet.define<BaseHighlightOptions, Required
 // const staticHighlighterCompartment = new Compartment();
 
 export function staticHighlighterExtension(plugin: DynamicHighlightsPlugin): Extension {
+   
+  const injskw = plugin.settings.injsOptions.keyword;
   const staticHighlighter = ViewPlugin.fromClass(
     class {
       decorations: DecorationSet;
@@ -115,8 +118,8 @@ export function staticHighlighterExtension(plugin: DynamicHighlightsPlugin): Ext
               }
               if (!query.mark || query.mark?.contains("match")) {
                 let markDeco;
-                const q=query.query.trim().replace('`',"")
-                if (q.startsWith("injs=")) {
+                const q = query.query.trim().replace('`', "")                             
+                if (q.startsWith(injskw)) {                  
                   const thisline = currentLine.text
                   markDeco = Decoration.replace({
                     widget: new inlineJsWidget(limitedEval({ formular: query.css!, localVariables: { thisline } })),

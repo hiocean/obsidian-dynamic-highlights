@@ -5,7 +5,7 @@ import { highlightSelectionMatches, reconfigureSelectionHighlighter } from "./hi
 import { buildStyles, staticHighlighterExtension } from "./highlighters/static";
 import addIcons from "./icons/customIcons";
 import { DH_RUNNER } from "./settings/constant";
-import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions,  } from "./settings/settings";
+import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, HighlighterOptions, } from "./settings/settings";
 import { SettingTab } from "./settings/ui";
 import { debugPrint } from "./utils/funcs";
 
@@ -24,7 +24,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
 
   async onload() {
     // load data
-    await this.loadSettings(); 
+    await this.loadSettings();
     addIcons();
 
     // generate UIs
@@ -37,11 +37,13 @@ export default class DynamicHighlightsPlugin extends Plugin {
     // update exts
     this.staticHighlighter = staticHighlighterExtension(this);
     this.extensions = [];
+    
     this.updateSelectionHighlighter();
     this.updateStaticHighlighter();
     this.updateStyles();
     this.registerEditorExtension(this.extensions);
     this.initCSS();
+    await this.updateInjsOptions();
 
     // listen the change of leaf
     this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
@@ -60,7 +62,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
       this.delToggler();
     }
   }
-  
+
   private addToggler(): void {
     this.toggler = document.createElement('button');
     const icon = document.createElement('span');
@@ -78,24 +80,39 @@ export default class DynamicHighlightsPlugin extends Plugin {
     //   this.updateFrontmatterHighlighter({ useCache: false });
     // });
     // document.body.removeChild(this.toggler);
-    this.toggler.remove()
-    new Notice("Toggler is disabled.")
+    if (this.toggler) {
+      this.toggler.remove();
+      new Notice("Toggler is disabled.");
+    }
     // const toggler: HTMLElement = document.querySelector(`.${_RUNNER}`)!;
     // if (toggler) {
     //   toggler.remove(); new Notice("toggler disabled.")
     // }
-   
+
   }
 
+  async updateInjsOptions() {
+    const config = this.settings.injsOptions
+    if (!config.enabled) return
+    Object.assign(this.settings.staticHighlighter.queries, config.queries);
+    new Notice("addeddddd")
+    console.dir(this.settings.staticHighlighter.queries)
+    await this.saveSettings();
+    this.updateCustomCSS();
+    this.updateStyles();
+    this.updateStaticHighlighter()
+  }
+
+
   async updateFrontmatterHighlighter({ useCache = true }: { useCache?: boolean; } = {}): Promise<void> {
-    debugPrint({ arg: "Func updateFrontmatterHighlighter is called!", debug: this.settings.debug })
+
     if (!this.settings.frontmatterHighlighter.enabled) return
-    // let hasModified = false,currHighlightInFm;
+
     let { hasModified, result: currHighlightInFm } = await this.getFrontmatter(useCache)
-    debugPrint({ arg: "Highlighter keyword in fm: " + currHighlightInFm, debug: this.settings.debug });
+
 
     //clear staticHighlighter.queries 
-    Object.keys(this.settings.staticHighlighter.queries).forEach(key => {
+    Object.keys(this.settings.frontmatterHighlighter.queries).forEach(key => {
       if (!this.settings.staticHighlighter.queryOrder.includes(key)) {
         delete this.settings.staticHighlighter.queries[key];
       }

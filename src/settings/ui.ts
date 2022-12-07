@@ -18,13 +18,13 @@ import { basicSetup } from "src/editor/extensions";
 import DynamicHighlightsPlugin from "../main";
 import { ExportModal } from "./export";
 import { ImportModal } from "./import";
-import { BaseHighlightOptions, FrontmatterHighlightOptions, INJSOptions, MarkItems, MarkTypes, markTypes, TabContentInfo } from "./settings";
+import { BaseHighlightOptions, FrontmatterOptions, INJSOptions, MarkItems, MarkTypes, markTypes, TabContentInfo } from "./settings";
 import { materialPalenight } from "../editor/theme-dark";
 import { basicLightTheme } from "../editor/theme-light";
-import { StaticHighlightOptions } from "src/highlighters/static";
 import { SearchQuery } from "./settings";
 import { debugPrint } from "src/utils/funcs";
 import { DH_Settings } from "./constant";
+import { config } from "process";
 
 
 const DHS_Header = 'dynamic-highlights-settings-header';
@@ -36,6 +36,11 @@ const DHS_Nav_Itm_Selted = 'setting-navigation-item-selected';
 const DHS_Tab_content = 'setting-tab-settings';
 const DHS_Tab_Header = "dynamic-highlights-settings-heading";
 const DHS_DefineUI = "highlighter-definition";
+const DHS_Name = "highlighter-name";
+const DHS_ignore = "ignored-words-input";
+const DHS_CSS_Wrapper = "custom-css-wrapper";
+const DHS_Span_Item_Name = "setting-item-name";
+const DHS_Custom_CSS = "custom-css";
 export class SettingTab extends PluginSettingTab {
   plugin: DynamicHighlightsPlugin;
   fmEditor: EditorView;
@@ -45,6 +50,7 @@ export class SettingTab extends PluginSettingTab {
   private navigateEl: HTMLElement;
   private selectedTab = 'General';
   private allTabs: Map<string, TabContentInfo> = new Map<string, TabContentInfo>();
+  injsEditor: EditorView;
 
   constructor(app: App, plugin: DynamicHighlightsPlugin) {
     super(app, plugin);
@@ -54,6 +60,7 @@ export class SettingTab extends PluginSettingTab {
   hide() {
     this.fmEditor?.destroy();
     this.staticEditor?.destroy();
+    this.injsEditor?.destroy();
     this.pickrInstance && this.pickrInstance.destroyAndRemove();
   }
 
@@ -86,10 +93,10 @@ export class SettingTab extends PluginSettingTab {
       (el: HTMLElement, tabName: string) => this.selectionHighlightUI(el));
     this.createTabAndContent('Ignored Word', this.navigateEl, settingsEl,
       (el: HTMLElement, tabName: string) => this.ignoredWordUI(el));
-    // this.createTabAndContent('Debug', this.navigateEl, settingsEl,
-    //   (el: HTMLElement, tabName: string) => this.injsUI(this.plugin.settings.injsOptions, el));
+    this.createTabAndContent('Inline JS', this.navigateEl, settingsEl,
+      (el: HTMLElement, tabName: string) => this.injsUI(this.plugin.settings.injsOptions, el));
   }
-  
+
   private createTabAndContent(tabName: string, navigateEl: HTMLElement, containerEl: HTMLElement,
     generateTabContent?: (el: HTMLElement, tabName: string) => void) {
     const displayTabContent = this.selectedTab === tabName;
@@ -136,8 +143,8 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private generateGeneralSettings(tabName: string, containerEl: HTMLElement) {
-    this.enableFrontmatterUI(containerEl);
-    this.setFrontmatterKeywordUI(containerEl);
+    // this.enableConfigUI({ config, containerEl });
+    // this.setFrontmatterKeywordUI(config, containerEl);
     this.wordCursorSettingUI(containerEl);
     this.selectTextSettingUI(containerEl);
     this.delaySettingUI(containerEl);
@@ -157,11 +164,11 @@ export class SettingTab extends PluginSettingTab {
       });
   }
 
-  private frontmatterHighlightUI(config: BaseHighlightOptions, containerEl: HTMLElement) {
+  private frontmatterHighlightUI(config: FrontmatterOptions, containerEl: HTMLElement) {
     containerEl.createEl("h3", { text: "Frontmatter based Highlights", });
 
-    this.enableFrontmatterUI(containerEl);
-    this.setFrontmatterKeywordUI(containerEl);
+    this.enableConfigUI({ config, containerEl });
+    this.setKeywordUI(config, containerEl);
 
     const fmDefineQueryUI = new Setting(containerEl);
     fmDefineQueryUI.setName("Define Frontmatter highlighters")
@@ -172,7 +179,7 @@ export class SettingTab extends PluginSettingTab {
 
     const classInput = this.textInputEl({ parent: fmDefineQueryUI.controlEl, placeholder: defaultClassName });
 
-    const { customCSSWrapper, editor } = this.customCSSUI(fmDefineQueryUI);
+    const { customTextAreaWrapper: customCSSWrapper, editor } = this.customTextAreaUI(fmDefineQueryUI);
     this.fmEditor = editor;
 
     this.saveButtonEl({
@@ -209,91 +216,101 @@ export class SettingTab extends PluginSettingTab {
 
     this.sortableContainerEl(highlightersContainer, config);
   }
-  // private injsUI(config: INJSOptions, containerEl: HTMLElement) {
-  //   containerEl.createEl("h3", { text: "Frontmatter based Highlights", });
+  private injsUI(config: INJSOptions, containerEl: HTMLElement) {
+    containerEl.createEl("h3", { text: "Inline JS Functions", });
+    this.enableConfigUI({ config, containerEl, setName: "Enable INJS" });
+    this.setKeywordUI(config, containerEl);
 
-  //   this.enableFrontmatterUI(containerEl);
-  //   this.setFrontmatterKeywordUI(containerEl);
+    const defineUI = new Setting(containerEl);
 
-  //   const fmDefineQueryUI = new Setting(containerEl);
-  //   fmDefineQueryUI.setName("Define Frontmatter highlighters")
-  //     .setClass(DHS_DefineUI)
-  //     .setDesc(`In this section you define highlighters based on front matter. Thus, only css is needed, name is optional.`);
+    const desc = document.createDocumentFragment();
+    desc.append(
+      "In this section you define INJS settings.",
+      desc.createEl("br"),
+      `Here, the name of the funcion \`funcname\` is needed and the fullname will be ${config.keyword}.funcname.`,
+      desc.createEl("br"),
+      "In the functions, `thisline` will be exposed which is the content of the line where the code locates."
+    );
+    defineUI.setName("Define inline js functions")
+      .setClass(DHS_DefineUI)
+      .setDesc(desc);
 
-  //   const defaultClassName = this.getDefaultFmCSSName(config);
+    // const defaultClassName = this.getDefaultFmCSSName(config);
 
-  //   const classInput = this.textInputEl({ parent: fmDefineQueryUI.controlEl, placeholder: defaultClassName });
+    const classInput = this.textInputEl({ parent: defineUI.controlEl, placeholder: config.keyword + ".func" });
 
-  //   const { customCSSWrapper, editor } = this.customCSSUI(fmDefineQueryUI);
-  //   this.fmEditor = editor;
+    const { customTextAreaWrapper, editor } = this.customTextAreaUI(defineUI, "Inline Js:");
+    this.injsEditor = editor;
 
-  //   this.saveButtonEl({
-  //     config, parentEl: customCSSWrapper, callbackGettingQuery:
-  //       () => {
-  //         let customCss = this.fmEditor.state.doc.toString();
-  //         const className: string = classInput.inputEl.value.replace(/ /g, "-") || defaultClassName
-  //         customCss = customCss.replace(/\.([\w-]+)\s+{/gm, `.${className} {`)
-  //         return {
-  //           class: className,
-  //           color: "",
-  //           regex: true,
-  //           query: "",
-  //           css: customCss,
-  //         };
-  //       }
-  //   });
+    this.saveButtonEl({
+      config, parentEl: customTextAreaWrapper, callbackGettingQuery:
+        () => {
+          let jsString = this.injsEditor.state.doc.toString();
+          let className: string = classInput.inputEl.value.replace(/ /g, "-")
+          if (!className) { new Notice("A inline js function name is needed!"); return }
+          // className = className.replace(config.keyword, "");
+          return {
+            class: className,
+            color: "",
+            regex: true,
+            query: "`" + config.keyword + "\." + className + "`",
+            css: jsString,
+          };
+        }
+    });
 
-  //   const highlightersContainer = this.highlightersContainerEl(
-  //     {
-  //       config, containerEl, editCallback:
-  //         (highlighter: string): void => {
-  //           let options = config.queries[highlighter];
-  //           classInput.inputEl.value = highlighter;
-  //           let extensions = basicSetup;
-  //           if (document.body.hasClass("theme-dark")) {
-  //             extensions.push(materialPalenight);
-  //           } else {
-  //             extensions.push(basicLightTheme);
-  //           }
-  //           this.fmEditor.setState(EditorState.create({ doc: options.css ? options.css : "", extensions: extensions }));
-  //         }
-  //     });
+    const highlightersContainer = this.highlightersContainerEl(
+      {
+        config, containerEl, editCallback:
+          (highlighter: string): void => {
+            let options = config.queries[highlighter];
+            classInput.inputEl.value = highlighter;
+            let extensions = basicSetup;
+            if (document.body.hasClass("theme-dark")) {
+              extensions.push(materialPalenight);
+            } else {
+              extensions.push(basicLightTheme);
+            }
+            this.injsEditor.setState(EditorState.create({ doc: options.css ? options.css : "", extensions: extensions }));
+          }
+      });
 
-  //   this.sortableContainerEl(highlightersContainer, config);
-  // }
+    this.sortableContainerEl(highlightersContainer, config);
+  }
 
 
-  private setFrontmatterKeywordUI(containerEl: HTMLElement) {
-    const defaultfmkw = this.plugin.settings.frontmatterHighlighter.keyword
+  private setKeywordUI(config: FrontmatterOptions | INJSOptions, containerEl: HTMLElement) {
+    const defaultfmkw = config.keyword
     new Setting(containerEl)
-      .setName("Frontmatter keyword")
-      .setDesc(`The keyword in the front matter, default is '${defaultfmkw}'.`)
+      .setName("Set the keyword")
+      .setDesc(`The default keyword is '${defaultfmkw}'.`)
       .addText(text => {
         text.inputEl.type = "string";
         // text.setPlaceholder(defaultfmkw);
-        text.inputEl.addClass("highlighter-name" );
+        text.inputEl.addClass(DHS_Name);
         text.setValue(defaultfmkw).onChange(value => {
-          this.plugin.settings.frontmatterHighlighter.keyword = value;
+          config.keyword = value;
           this.plugin.saveSettings();
-          this.plugin.updateFrontmatterHighlighter();
+          this.plugin.updateFrontmatterHighlighter();//todo
         });
       });
   }
 
-  private enableFrontmatterUI(containerEl: HTMLElement) {
-    new Setting(containerEl).setName("Enable frontmatter highlighter ")
+  private enableConfigUI({ config, containerEl, setName = "Enable frontmatter highlighter "
+  }: { config: FrontmatterOptions | INJSOptions; containerEl: HTMLElement; setName?: string; }): void {
+    new Setting(containerEl).setName(setName)
       .addToggle(toggle => {
         toggle
-          .setValue(this.plugin.settings.frontmatterHighlighter.enabled)
+          .setValue(config.enabled)
           .onChange(value => {
-            this.plugin.settings.frontmatterHighlighter.enabled = value;
+            config.enabled = value;
             this.plugin.saveSettings();
-            this.plugin.updateFrontmatterHighlighter();
+            this.plugin.updateFrontmatterHighlighter();//todo
           });
       });
   }
 
-  private getDefaultFmCSSName(config: FrontmatterHighlightOptions): string {
+  private getDefaultFmCSSName(config: BaseHighlightOptions): string {
     var id: number = Object.keys(config.queries).length;
     const defaultClassName = `frontmattercssNo${String(id)}`;
     return defaultClassName;
@@ -304,7 +321,7 @@ export class SettingTab extends PluginSettingTab {
       .setName("Ignored words")
       .setDesc("A comma delimted list of words that will not be highlighted")
       .addTextArea(text => {
-        text.inputEl.addClass("ignored-words-input");
+        text.inputEl.addClass(DHS_ignore);
         text.setValue(this.plugin.settings.selectionHighlighter.ignoredWords).onChange(async (value) => {
           this.plugin.settings.selectionHighlighter.ignoredWords = value;
           await this.plugin.saveSettings();
@@ -340,23 +357,25 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private selectTextSettingUI(containerEl: HTMLElement) {
-    new Setting(containerEl).setName("Highlight all occurrences of the actively selected text").addToggle(toggle => {
-      toggle.setValue(this.plugin.settings.selectionHighlighter.highlightSelectedText).onChange(value => {
-        this.plugin.settings.selectionHighlighter.highlightSelectedText = value;
-        this.plugin.saveSettings();
-        this.plugin.updateSelectionHighlighter();
+    new Setting(containerEl).setName("Highlight all occurrences of the actively selected text")
+      .addToggle(toggle => {
+        toggle.setValue(this.plugin.settings.selectionHighlighter.highlightSelectedText).onChange(value => {
+          this.plugin.settings.selectionHighlighter.highlightSelectedText = value;
+          this.plugin.saveSettings();
+          this.plugin.updateSelectionHighlighter();
+        });
       });
-    });
   }
 
   private wordCursorSettingUI(containerEl: HTMLElement) {
-    new Setting(containerEl).setName("Highlight all occurrences of the word under the cursor").addToggle(toggle => {
-      toggle.setValue(this.plugin.settings.selectionHighlighter.highlightWordAroundCursor).onChange(value => {
-        this.plugin.settings.selectionHighlighter.highlightWordAroundCursor = value;
-        this.plugin.saveSettings();
-        this.plugin.updateSelectionHighlighter();
+    new Setting(containerEl).setName("Highlight all occurrences of the word under the cursor")
+      .addToggle(toggle => {
+        toggle.setValue(this.plugin.settings.selectionHighlighter.highlightWordAroundCursor).onChange(value => {
+          this.plugin.settings.selectionHighlighter.highlightWordAroundCursor = value;
+          this.plugin.saveSettings();
+          this.plugin.updateSelectionHighlighter();
+        });
       });
-    });
   }
 
   private imExportUI(containerEl: HTMLElement) {
@@ -391,7 +410,7 @@ export class SettingTab extends PluginSettingTab {
     );
   }
 
-  private staticHighlightUI(config: StaticHighlightOptions, containerEl: HTMLElement) {
+  private staticHighlightUI(config: BaseHighlightOptions, containerEl: HTMLElement) {
 
     containerEl.createEl("h3", { text: "Persistent Highlights", })
 
@@ -405,7 +424,7 @@ export class SettingTab extends PluginSettingTab {
 
     const { marks, queryTypeInput, queryInput } = this.queryUI(staticDefineQueryUI);
 
-    const { customCSSWrapper, editor } = this.customCSSUI(staticDefineQueryUI);
+    const { customTextAreaWrapper: customCSSWrapper, editor } = this.customTextAreaUI(staticDefineQueryUI);
     this.staticEditor = editor;
 
     this.saveButtonEl({
@@ -494,18 +513,20 @@ export class SettingTab extends PluginSettingTab {
     return newInput;
   }
 
-  private customCSSUI(defineQueryUI: Setting): { customCSSWrapper: HTMLDivElement; editor: EditorView; } {
-    const customCSSWrapper = defineQueryUI.controlEl.createDiv("custom-css-wrapper");
-    customCSSWrapper.createSpan("setting-item-name").setText("Custom CSS");
-    const customCSSEl = new TextAreaComponent(customCSSWrapper);
+  private customTextAreaUI(parentUI: Setting, setText: string = "Custom CSS"): {
+    customTextAreaWrapper: HTMLDivElement; editor: EditorView;
+  } {
+    const customTextAreaWrapper = parentUI.controlEl.createDiv(DHS_CSS_Wrapper);
+    customTextAreaWrapper.createSpan(DHS_Span_Item_Name).setText(setText);
+    const customTextEl = new TextAreaComponent(customTextAreaWrapper);
 
-    const editor = editorFromTextArea(customCSSEl.inputEl, basicSetup);
-    customCSSEl.inputEl.addClass("custom-css");
-    return { customCSSWrapper, editor };
+    const editor = editorFromTextArea(customTextEl.inputEl, basicSetup);
+    customTextEl.inputEl.addClass(DHS_Custom_CSS);
+    return { customTextAreaWrapper, editor };
   }
 
   private saveButtonEl({ config, parentEl, callbackGettingQuery }: {
-    config: StaticHighlightOptions | FrontmatterHighlightOptions;
+    config: BaseHighlightOptions;
     parentEl: HTMLDivElement;
     callbackGettingQuery: () => SearchQuery;
   }): ButtonComponent {
@@ -527,12 +548,15 @@ export class SettingTab extends PluginSettingTab {
           config.queries[className] = aquery
 
           await this.plugin.saveSettings();
-          if ('enableFrontmatterHighlight' in config) {
-            debugPrint({ arg: "call updateFrontmatterHighlighter!" });
+          console.log(config.type)
+
+          if (config.type == "fm") {
             this.plugin.updateFrontmatterHighlighter();
+          } else if (config.type == "injs") {
+            console.log("here")
+            this.plugin.updateInjsOptions();
           } else {
             this.plugin.updateStaticHighlighter();
-            debugPrint({ arg: "call updateStaticHighlighter!" });
           }
           this.plugin.updateCustomCSS();
           this.plugin.updateStyles();
@@ -551,7 +575,7 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private highlightersContainerEl({ config, containerEl, editCallback }: {
-    config: StaticHighlightOptions | FrontmatterHighlightOptions; containerEl: HTMLElement;
+    config: BaseHighlightOptions; containerEl: HTMLElement;
     editCallback: (highlighter: string) => void
   }): HTMLDivElement {
     const highlightersContainer = containerEl.createEl("div", { cls: "highlighter-container", });

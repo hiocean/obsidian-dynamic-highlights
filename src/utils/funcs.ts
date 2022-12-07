@@ -2,7 +2,7 @@
  * @Author: hiocean
  * @Date: 2022-12-06 16:51:04
  * @LastEditors: hiocean
- * @LastEditTime: 2022-12-06 17:17:58
+ * @LastEditTime: 2022-12-06 19:20:06
  * @FilePath: \obsidian-dynamic-highlights\src\utils\funcs.ts
  * @Description: 
  * 
@@ -23,3 +23,9 @@ export function limitedEval({ formular, localVariables = {} }: { formular: strin
         return e
     }
 }
+
+export function setAttributes(element: any, attributes: any) {
+    for (let key in attributes) {
+      element.setAttribute(key, attributes[key]);
+    }
+  }
