@@ -10,20 +10,39 @@ import { BaseHighlightOptions } from "src/settings/settings";
 import { StyleSpec } from "style-mod";
 import { RegExpCursor } from "./regexp-cursor";
 import { limitedEval } from "src/utils/funcs";
-import { Notice } from "obsidian";
+import { getAPI as DV } from "obsidian-dataview";
 
-
+// const dvAPI = DV();
 
 export class inlineJsWidget extends WidgetType {
-  text: string
-  constructor(text: string) {
+  private el: HTMLElement;
+  constructor(
+    private name: string,
+    private text: string,
+    private thisline: string
+    // 
+    // private view: EditorView
+  ) {
     super();
     this.text = text;
+    this.name = name;
+    this.thisline = thisline;
   }
   toDOM(): HTMLElement {
-    const div = document.createElement("span");
-    div.innerText = this.text;
-    return div;
+    this.el = document.createElement("span");
+    const res = limitedEval({
+      formular: this.text, localVariables: { thisline: this.thisline, dv:  DV() }
+    });
+
+    this.el.innerText = res
+    this.el.addEventListener("mouseenter", (event) => {
+      this.el.innerText = this.name
+    });
+
+    this.el.addEventListener("mouseleave", (event) => {
+      this.el.innerText = res;
+    });
+    return this.el;
   }
   ignoreEvent() {
     return false;
@@ -49,7 +68,7 @@ export const staticHighlightConfig = Facet.define<BaseHighlightOptions, Required
 // const staticHighlighterCompartment = new Compartment();
 
 export function staticHighlighterExtension(plugin: DynamicHighlightsPlugin): Extension {
-   
+
   const injskw = plugin.settings.injsOptions.keyword;
   const staticHighlighter = ViewPlugin.fromClass(
     class {
@@ -57,7 +76,7 @@ export function staticHighlighterExtension(plugin: DynamicHighlightsPlugin): Ext
       lineDecorations: DecorationSet;
       groupDecorations: DecorationSet;
       widgetDecorations: DecorationSet;
-  
+
       constructor(view: EditorView) {
         let { token, line, group, widget } = this.getDeco(view);
         this.decorations = token;
@@ -65,7 +84,7 @@ export function staticHighlighterExtension(plugin: DynamicHighlightsPlugin): Ext
         this.groupDecorations = group;
         this.widgetDecorations = widget;
       }
-  
+
       update(update: ViewUpdate) {
         let reconfigured = update.startState.facet(staticHighlightConfig) !== update.state.facet(staticHighlightConfig);
         if (update.docChanged || update.viewportChanged || reconfigured) {
@@ -76,7 +95,7 @@ export function staticHighlighterExtension(plugin: DynamicHighlightsPlugin): Ext
           this.widgetDecorations = widget;
         }
       }
-  
+
       getDeco(view: EditorView): {
         line: DecorationSet;
         token: DecorationSet;
@@ -103,7 +122,7 @@ export function staticHighlighterExtension(plugin: DynamicHighlightsPlugin): Ext
             while (!cursor.next().done) {
               let { from, to } = cursor.value;
               let cursorString = state.sliceDoc(from, to).trim();
-  
+
               const currentLine = view.state.doc.lineAt(from);
               const linePos = currentLine?.from;
               let syntaxNode = syntaxTree(view.state).resolveInner(linePos + 1),
@@ -118,11 +137,11 @@ export function staticHighlighterExtension(plugin: DynamicHighlightsPlugin): Ext
               }
               if (!query.mark || query.mark?.contains("match")) {
                 let markDeco;
-                const q = query.query.trim().replace('`', "")                             
-                if (q.startsWith(injskw)) {                  
+                const q = query.query.trim().replace('`', "")
+                if (q.startsWith(injskw)) {
                   const thisline = currentLine.text
                   markDeco = Decoration.replace({
-                    widget: new inlineJsWidget(limitedEval({ formular: query.css!, localVariables: { thisline } })),
+                    widget: new inlineJsWidget(query.query.trim(), query.css!, thisline),
                     inclusive: false,
                     block: false,
                   })
@@ -130,14 +149,14 @@ export function staticHighlighterExtension(plugin: DynamicHighlightsPlugin): Ext
                   markDeco = Decoration.mark({ class: query.class, attributes: { "data-contents": cursorString } });
                 }
                 tokenDecos.push(markDeco.range(from, to));
-  
+
               }
               if (query.mark?.contains("start") || query.mark?.contains("end")) {
                 let startDeco = Decoration.widget({ widget: new IconWidget(query.class + "-start") });
                 let endDeco = Decoration.widget({ widget: new IconWidget(query.class + "-end") });
                 if (query.mark?.contains("start")) widgetDecos.push(startDeco.range(from, from));
                 if (query.mark?.contains("end")) widgetDecos.push(endDeco.range(to, to));
-  
+
               }
               if (query.mark?.contains("group")) {
                 let groups;
@@ -166,7 +185,7 @@ export function staticHighlighterExtension(plugin: DynamicHighlightsPlugin): Ext
           // pos = ; // since Object.entries returns keys as strings
           const lineDeco = Decoration.line({ attributes: { class: classes.join(" ") } });
           lineDecos.push(lineDeco.range(parseInt(pos)));
-  
+
         });
         return {
           line: Decoration.set(lineDecos.sort((a, b) => a.from - b.from)),

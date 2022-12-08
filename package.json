@@ -34,6 +34,7 @@
     "lodash": "^4.17.21",
     "monkey-around": "^2.2.0",
     "obsidian": "^0.16.3",
+    "obsidian-dataview": "^0.5.51",
     "regexp-match-indices": "^1.0.2",
     "sortablejs": "^1.14.0",
     "stylelint": "^14.2.0",
