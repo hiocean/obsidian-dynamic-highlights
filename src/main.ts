@@ -5,7 +5,7 @@ import { highlightSelectionMatches, reconfigureSelectionHighlighter } from "./hi
 import { buildStyles, staticHighlighterExtension } from "./highlighters/static";
 import addIcons from "./icons/customIcons";
 import { DH_RUNNER } from "./settings/constant";
-import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, BaseHighlightOptions, OptionName, OptionTypeNames, SelectionHighlightOptions } from "./settings/settings";
+import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, BaseHighlightOptions, OptionTypes, SelectionHighlightOptions } from "./settings/settings";
 import { SettingTab } from "./settings/ui";
 import { debugPrint, limitedEval } from "./utils/funcs";
 import { getAPI as DV } from "obsidian-dataview";
@@ -43,17 +43,17 @@ export default class DynamicHighlightsPlugin extends Plugin {
     // listen the change of leaf
     this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
       this.updateFmOptions({ useCache: false });
-      this.update(OptionTypeNames.Frontmatter);
+      this.update(OptionTypes.Frontmatter);
     }))
   }
 
-  async update(configType?: OptionName) {
+  async update(configType?: OptionTypes) {
     await this.saveSettings();
     if (!configType) this.initCSS();
-    if (!configType || configType == OptionTypeNames.Frontmatter) this.updateFmOptions();
-    if (!configType || configType == OptionTypeNames.Inlinejs) this.updateInjsOptions();
-    if (!configType || configType == OptionTypeNames.Selection) this.updateSelectionHighlighter();
-    if (!configType || configType != OptionTypeNames.Selection) {
+    if (!configType || configType == OptionTypes.Frontmatter) this.updateFmOptions();
+    if (!configType || configType == OptionTypes.Inlinejs) this.updateInjsOptions();
+    if (!configType || configType == OptionTypes.Selection) this.updateSelectionHighlighter();
+    if (!configType || configType != OptionTypes.Selection) {
       this.updateStaticHighlighter();
       this.updateStyles();
       this.updateCustomCSS();
@@ -103,7 +103,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.toggler.appendChild(icon);
     this.toggler.addEventListener('click', async () => {
       this.updateFmOptions({ useCache: false });
-      this.update(OptionTypeNames.Static)
+      this.update(OptionTypes.Static)
     });
     document.body.appendChild(this.toggler);
     new Notice("Toggler is enabled.");

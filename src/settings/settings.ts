@@ -2,7 +2,7 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-12-07 17:25:32
+ * @LastEditTime: 2022-12-10 19:59:09
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
@@ -27,7 +27,7 @@ export interface SearchQueries {
 }
 
 export interface BasOptions {
-  type: OptionName;
+  type: OptionTypes;
 }
 export interface BaseHighlightOptions extends BasOptions {
 
@@ -68,25 +68,25 @@ export interface SelectionHighlightOptions extends BasOptions {
 
 };
 
-export interface OptionType {
-  Selection: OptionName;
-  Static: OptionName;
-  Frontmatter: OptionName;
-  Inlinejs: OptionName;
-}
+// export interface OT {
+//   Selection: OptionName;
+//   Static: OptionName;
+//   Frontmatter: OptionName;
+//   Inlinejs: OptionName;
+// }
 
-export const OptionTypeNames: OptionType = {
-  Selection: "selection",
-  Static: "static",
-  Frontmatter: "fm",
-  Inlinejs: "injs"
+export enum  OptionTypes {
+  Selection= "selection",
+  Static= "static",
+  Frontmatter= "fm",
+  Inlinejs="injs"
 };
 
-export type OptionName = "selection" | "static" | "fm" |"injs" ;
+// export type OptionName = "selection" | "static" | "fm" |"injs" ;
 export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
   debug: false,
   selectionHighlighter: {
-    type: "selection",
+    type: OptionTypes.Selection,
     highlightWordAroundCursor: true,
     highlightSelectedText: true,
     maxMatches: 100,
@@ -95,12 +95,12 @@ export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
     ignoredWords: ignoredWords,
   },
   staticHighlighter: {
-    type: "static",
+    type: OptionTypes.Static,
     queries: {},
     queryOrder: [],
   },
   frontmatterHighlighter: {
-    type: "fm",
+    type: OptionTypes.Frontmatter,
     togglerIcon: '🌟',
     enableToggler: false,
     enabled: true,
@@ -109,7 +109,7 @@ export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
     queryOrder: [],
   },
   injsOptions: {
-    type: "injs",
+    type: OptionTypes.Inlinejs,
     enabled: true,
     keyword: "injs",
     queries: {},
