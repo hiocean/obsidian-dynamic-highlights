@@ -12,7 +12,6 @@ import { RegExpCursor } from "./regexp-cursor";
 import { limitedEval } from "src/utils/funcs";
 import { getAPI as DV } from "obsidian-dataview";
 
-// const dvAPI = DV();
 
 export class inlineJsWidget extends WidgetType {
   private el: HTMLElement;
@@ -20,8 +19,6 @@ export class inlineJsWidget extends WidgetType {
     private name: string,
     private text: string,
     private thisline: string
-    // 
-    // private view: EditorView
   ) {
     super();
     this.text = text;
@@ -31,21 +28,22 @@ export class inlineJsWidget extends WidgetType {
   toDOM(): HTMLElement {
     const el = document.createElement("span");
     const res = limitedEval({
-      formular: this.text, localVariables: { thisline: this.thisline, dv: DV() }
+      formular: this.text,
+      localVariables: { thisline: this.thisline, dv: DV() }
     });
 
     el.innerText = res
-    el.setAttribute("data-thisline", this.thisline);
-    el.setAttribute("data-result", res);
-    el.setAttribute("class", "injs");
+    // el.setAttribute("data-thisline", this.thisline);
+    // el.setAttribute("data-result", res);
+    // el.setAttribute("class", "injs");
     // el.setAttribute("contenteditable", "true");
     // el.setAttribute("data-clipboard-text", res);
-    el.setAttribute("data-name", this.name);
+    // el.setAttribute("data-name", this.name);
     // el.setAttribute("data-replacedLine", this.thisline.replace(this.name,res) );
-    
+
     el.addEventListener("mouseenter", () => { el.innerText = this.name });
     el.addEventListener("mouseleave", () => { el.innerText = res; });
-    el.addEventListener("copy", (event) => { el.innerText = res; });
+    // el.addEventListener("copy", (event) => { el.innerText = res; });
     this.el = el
     return this.el;
   }
@@ -53,8 +51,6 @@ export class inlineJsWidget extends WidgetType {
     return true;
   }
 }
-
-
 
 const defaultOptions: BaseHighlightOptions = {
   queries: {},
