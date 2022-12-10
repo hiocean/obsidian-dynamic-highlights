@@ -31,25 +31,22 @@ export class inlineJsWidget extends WidgetType {
   toDOM(): HTMLElement {
     const el = document.createElement("span");
     const res = limitedEval({
-      formular: this.text, localVariables: { thisline: this.thisline, dv:  DV() }
+      formular: this.text, localVariables: { thisline: this.thisline, dv: DV() }
     });
 
     el.innerText = res
-    el.addEventListener("mouseenter", (event) => {
-      el.innerText = this.name
-    });
-
-    el.addEventListener("mouseleave", (event) => {
-      el.innerText = res;
-      console.log(event.target); // 输出触发事件的元素
-      console.log(event.type); // 输出事件的类型
-    });
-    el.addEventListener("copy", (event) => {
-      el.innerText = res;
-      console.log(event.target); // 输出触发事件的元素
-      console.log(event.type); // 输出事件的类型
-    });
-    this.el=el
+    el.setAttribute("data-thisline", this.thisline);
+    el.setAttribute("data-result", res);
+    el.setAttribute("class", "injs");
+    // el.setAttribute("contenteditable", "true");
+    // el.setAttribute("data-clipboard-text", res);
+    el.setAttribute("data-name", this.name);
+    // el.setAttribute("data-replacedLine", this.thisline.replace(this.name,res) );
+    
+    el.addEventListener("mouseenter", () => { el.innerText = this.name });
+    el.addEventListener("mouseleave", () => { el.innerText = res; });
+    el.addEventListener("copy", (event) => { el.innerText = res; });
+    this.el = el
     return this.el;
   }
   ignoreEvent() {
