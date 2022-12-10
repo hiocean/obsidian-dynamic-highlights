@@ -5,10 +5,10 @@ import { highlightSelectionMatches, reconfigureSelectionHighlighter } from "./hi
 import { buildStyles, staticHighlighterExtension } from "./highlighters/static";
 import addIcons from "./icons/customIcons";
 import { DH_RUNNER } from "./settings/constant";
-import { BasOptions, CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, BaseHighlightOptions, OptionName, OptionTypeNames, SelectionHighlightOptions } from "./settings/settings";
+import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, BaseHighlightOptions, OptionName, OptionTypeNames, SelectionHighlightOptions } from "./settings/settings";
 import { SettingTab } from "./settings/ui";
-import { debugPrint } from "./utils/funcs";
-
+import { debugPrint, limitedEval } from "./utils/funcs";
+import { getAPI as DV } from "obsidian-dataview";
 
 export default class DynamicHighlightsPlugin extends Plugin {
   settings: DynamicHighlightsSettings;
@@ -41,9 +41,8 @@ export default class DynamicHighlightsPlugin extends Plugin {
     await this.update();
 
     // listen the change of leaf
-
     this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
-      this.updateFrontmatterHighlighter({ useCache: false });
+      this.updateFmOptions({ useCache: false });
       this.update(OptionTypeNames.Frontmatter);
     }))
   }
@@ -51,21 +50,37 @@ export default class DynamicHighlightsPlugin extends Plugin {
   async update(configType?: OptionName) {
     await this.saveSettings();
     if (!configType) this.initCSS();
-    if (!configType || configType == OptionTypeNames.Frontmatter) this.updateFrontmatterHighlighter();
+    if (!configType || configType == OptionTypeNames.Frontmatter) this.updateFmOptions();
     if (!configType || configType == OptionTypeNames.Inlinejs) this.updateInjsOptions();
     if (!configType || configType == OptionTypeNames.Selection) this.updateSelectionHighlighter();
     if (!configType || configType != OptionTypeNames.Selection) {
       this.updateStaticHighlighter();
-
       this.updateStyles();
       this.updateCustomCSS();
       this.registerEditorExtension(this.extensions);
     }
     this.app.workspace.updateOptions();
+
+    // this.app.workspace.onLayoutReady(() => { 
+    //   const target = activeDocument.querySelectorAll('.injs');
+    //   // target[1].firstChild.innerText="111"
+    //   console.log(target[1].dataset)
+    // })
+
     this.registerMarkdownPostProcessor((element, context) => {
-      // console.log(element);
-      const target = element.querySelectorAll('.frontmattercssNo0');
-      console.log(target, context)
+      const codes = element.querySelectorAll("code");
+      const config = this.settings.injsOptions;
+      codes.forEach(function (code) {
+        if (code.innerText.startsWith(config.keyword)) {
+          const thisline = code.parentElement?.innerText;
+          // console.log(code.innerText,thisline)
+          const queryName = code.innerText.replace(`${config.keyword}.`, "")
+          code.innerText = limitedEval({
+            formular: config.queries[queryName]?.css || "", localVariables:
+              { thisline: thisline, dv: DV() }
+          });
+        };
+      });
     })
   }
 
@@ -75,7 +90,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
     await this.saveSettings();
     if (!togglerEnabled) {
       this.addToggler();
-      new Notice("Toggler is enabled.");
     } else {
       this.delToggler();
     }
@@ -88,39 +102,29 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.toggler.classList.add(DH_RUNNER);
     this.toggler.appendChild(icon);
     this.toggler.addEventListener('click', async () => {
-      this.updateFrontmatterHighlighter({ useCache: false });
+      this.updateFmOptions({ useCache: false });
       this.update(OptionTypeNames.Static)
     });
     document.body.appendChild(this.toggler);
+    new Notice("Toggler is enabled.");
   }
 
   private delToggler() {
-    // this.toggler.removeEventListener('click', async () => {
-    //   this.updateFrontmatterHighlighter({ useCache: false });
-    // });
-    // document.body.removeChild(this.toggler);
     this.settings.frontmatterHighlighter.enabled = false;
     if (this.toggler) {
       this.toggler.remove();
       new Notice("Toggler is disabled.");
     }
-    // const toggler: HTMLElement = document.querySelector(`.${_RUNNER}`)!;
-    // if (toggler) {
-    //   toggler.remove(); new Notice("toggler disabled.")
-    // }
-
   }
 
   async updateInjsOptions() {
     const config = this.settings.injsOptions
     if (!config.enabled) return
     Object.assign(this.settings.staticHighlighter.queries, config.queries);
-    // new Notice("addeddddd")
-    // console.dir(this.settings.staticHighlighter.queries)
+    console.log("Dynamic Highlighter: Updated.")
   }
 
-
-  async updateFrontmatterHighlighter({ useCache = true }: { useCache?: boolean; } = {}): Promise<void> {
+  async updateFmOptions({ useCache = true }: { useCache?: boolean; } = {}): Promise<void> {
     //clear staticHighlighter.queries 
     Object.keys(this.settings.frontmatterHighlighter.queries).forEach(key => {
       if (!this.settings.staticHighlighter.queryOrder.includes(key)) {
@@ -131,11 +135,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
     if (!this.settings.frontmatterHighlighter.enabled) return
 
     let { hasModified, result: currHighlightInFm } = await this.getFrontmatter(useCache)
-
-
-    
-
-
     if (currHighlightInFm) {
       if (typeof currHighlightInFm === 'string' && currHighlightInFm.match(/[,，]/)) {
         currHighlightInFm = currHighlightInFm.split(/[,，]/).filter(e => e)
@@ -156,12 +155,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
         debugPrint({ arg: `addded: Name: ${className}; query: ${currHighlightInFm[i]}`, debug: this.settings.debug });
         hasModified = true
       }
-
     }
-    // if (hasModified = true) {
-    //   new Notice("Highlighter is shown based on Frontmatter!");
-    // }
-
   }
 
   async getFrontmatter(useCache: boolean = true): Promise<{ hasModified: boolean; result: string | string[] | undefined; }> {
