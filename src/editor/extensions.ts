@@ -1,3 +1,13 @@
+/*
+ * @Author: hiocean
+ * @Date: 2022-11-25 10:12:11
+ * @LastEditors: hiocean
+ * @LastEditTime: 2022-12-10 12:23:56
+ * @FilePath: \obsidian-dynamic-highlights\src\editor\extensions.ts
+ * @Description: 
+ * 
+ * Copyright (c) 2022 by hiocean, All Rights Reserved. 
+ */
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { css } from "@codemirror/lang-css";
 import {
@@ -13,8 +23,6 @@ import {
   drawSelection,
   dropCursor,
   EditorView,
-  highlightActiveLine,
-  highlightActiveLineGutter,
   highlightSpecialChars,
   keymap,
   lineNumbers,

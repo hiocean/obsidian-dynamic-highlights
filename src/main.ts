@@ -62,6 +62,11 @@ export default class DynamicHighlightsPlugin extends Plugin {
       this.registerEditorExtension(this.extensions);
     }
     this.app.workspace.updateOptions();
+    this.registerMarkdownPostProcessor((element, context) => {
+      // console.log(element);
+      const target = element.querySelectorAll('.frontmattercssNo0');
+      console.log(target, context)
+    })
   }
 
   private async updateToggler() {
@@ -94,6 +99,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     //   this.updateFrontmatterHighlighter({ useCache: false });
     // });
     // document.body.removeChild(this.toggler);
+    this.settings.frontmatterHighlighter.enabled = false;
     if (this.toggler) {
       this.toggler.remove();
       new Notice("Toggler is disabled.");
@@ -115,18 +121,19 @@ export default class DynamicHighlightsPlugin extends Plugin {
 
 
   async updateFrontmatterHighlighter({ useCache = true }: { useCache?: boolean; } = {}): Promise<void> {
-
-    if (!this.settings.frontmatterHighlighter.enabled) return
-
-    let { hasModified, result: currHighlightInFm } = await this.getFrontmatter(useCache)
-
-
     //clear staticHighlighter.queries 
     Object.keys(this.settings.frontmatterHighlighter.queries).forEach(key => {
       if (!this.settings.staticHighlighter.queryOrder.includes(key)) {
         delete this.settings.staticHighlighter.queries[key];
       }
     })
+
+    if (!this.settings.frontmatterHighlighter.enabled) return
+
+    let { hasModified, result: currHighlightInFm } = await this.getFrontmatter(useCache)
+
+
+    
 
 
     if (currHighlightInFm) {

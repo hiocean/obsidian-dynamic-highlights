@@ -29,23 +29,31 @@ export class inlineJsWidget extends WidgetType {
     this.thisline = thisline;
   }
   toDOM(): HTMLElement {
-    this.el = document.createElement("span");
+    const el = document.createElement("span");
     const res = limitedEval({
       formular: this.text, localVariables: { thisline: this.thisline, dv:  DV() }
     });
 
-    this.el.innerText = res
-    this.el.addEventListener("mouseenter", (event) => {
-      this.el.innerText = this.name
+    el.innerText = res
+    el.addEventListener("mouseenter", (event) => {
+      el.innerText = this.name
     });
 
-    this.el.addEventListener("mouseleave", (event) => {
-      this.el.innerText = res;
+    el.addEventListener("mouseleave", (event) => {
+      el.innerText = res;
+      console.log(event.target); // 输出触发事件的元素
+      console.log(event.type); // 输出事件的类型
     });
+    el.addEventListener("copy", (event) => {
+      el.innerText = res;
+      console.log(event.target); // 输出触发事件的元素
+      console.log(event.type); // 输出事件的类型
+    });
+    this.el=el
     return this.el;
   }
   ignoreEvent() {
-    return false;
+    return true;
   }
 }
 
