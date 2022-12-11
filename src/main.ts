@@ -70,15 +70,17 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.registerMarkdownPostProcessor((element, context) => {
       const codes = element.querySelectorAll("code");
       const config = this.settings.injsOptions;
+      let upperLines: (string | undefined)[][] = [];
       codes.forEach(function (code) {
         if (code.innerText.startsWith(config.keyword)) {
           const thisline = code.parentElement?.innerText;
           // console.log(code.innerText,thisline)
-          const queryName = code.innerText.replace(`${config.keyword}.`, "")
+          const queryName = code.innerText.replace(`${config.keyword}.`, "")         
           code.innerText = limitedEval({
             formular: config.queries[queryName]?.css || "", localVariables:
-              { thisline: thisline, dv: DV() }
+              { thisline: thisline, dv: DV() ,upperLines:upperLines}
           });
+          upperLines.push([thisline,queryName,code.innerText ])
         };
       });
     })
