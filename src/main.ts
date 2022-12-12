@@ -7,8 +7,8 @@ import addIcons from "./icons/customIcons";
 import { DH_RUNNER } from "./settings/constant";
 import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, BaseHighlightOptions, OptionTypes, SelectionHighlightOptions } from "./settings/settings";
 import { SettingTab } from "./settings/ui";
-import { debugPrint, limitedEval } from "./utils/funcs";
-import { getAPI as DV } from "obsidian-dataview";
+import { debugPrint, getDVAPI, limitedEval } from "./utils/funcs";
+// import { getAPI as DV } from "obsidian-dataview";
 
 export default class DynamicHighlightsPlugin extends Plugin {
   settings: DynamicHighlightsSettings;
@@ -60,7 +60,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
       this.registerEditorExtension(this.extensions);
     }
     this.app.workspace.updateOptions();
-
+    
     // this.app.workspace.onLayoutReady(() => { 
     //   const target = activeDocument.querySelectorAll('.injs');
     //   // target[1].firstChild.innerText="111"
@@ -68,6 +68,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     // })
 
     this.registerMarkdownPostProcessor((element, context) => {
+      const dv = getDVAPI(this.app);
       const codes = element.querySelectorAll("code");
       const config = this.settings.injsOptions;
       codes.forEach(function (code) {
@@ -77,7 +78,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
           const queryName = code.innerText.replace(`${config.keyword}.`, "")
           code.innerText = limitedEval({
             formular: config.queries[queryName]?.css || "", localVariables:
-              { thisline: thisline, dv: DV() }
+              { thisline: thisline, dv: dv} 
           });
         };
       });

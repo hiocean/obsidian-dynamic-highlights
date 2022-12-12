@@ -9,8 +9,9 @@ import DynamicHighlightsPlugin from "src/main";
 import { BaseHighlightOptions } from "src/settings/settings";
 import { StyleSpec } from "style-mod";
 import { RegExpCursor } from "./regexp-cursor";
-import { limitedEval } from "src/utils/funcs";
-import { getAPI as DV } from "obsidian-dataview";
+import { getDVAPI, limitedEval } from "src/utils/funcs";
+import { App } from "obsidian";
+
 
 
 export class inlineJsWidget extends WidgetType {
@@ -18,18 +19,20 @@ export class inlineJsWidget extends WidgetType {
   constructor(
     private name: string,
     private text: string,
-    private thisline: string
+    private thisline: string,
+    private app: App
   ) {
     super();
     this.text = text;
     this.name = name;
     this.thisline = thisline;
+    this.app=app
   }
   toDOM(): HTMLElement {
     const el = document.createElement("span");
     const res = limitedEval({
       formular: this.text,
-      localVariables: { thisline: this.thisline, dv: DV() }
+      localVariables: { thisline: this.thisline, dv: getDVAPI(this.app) }
     });
 
     el.innerText = res
@@ -142,7 +145,7 @@ export function staticHighlighterExtension(plugin: DynamicHighlightsPlugin): Ext
                 if (q.startsWith(injskw)) {
                   const thisline = currentLine.text
                   markDeco = Decoration.replace({
-                    widget: new inlineJsWidget(query.query.trim(), query.css!, thisline),
+                    widget: new inlineJsWidget(query.query.trim(), query.css!, thisline, plugin.app),
                     inclusive: false,
                     block: false,
                   })
