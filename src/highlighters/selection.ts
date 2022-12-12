@@ -5,7 +5,7 @@ import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from "@
 import { cloneDeep } from "lodash";
 import { debounce, Debouncer } from "obsidian";
 import { ignoredWords } from "src/settings/ignoredWords";
-import { SelectionHighlightOptions } from "src/settings/settings";
+import { OptionTypes, SelectionHighlightOptions } from "src/settings/settings";
 
 
 
@@ -16,6 +16,7 @@ const defaultHighlightOptions: SelectionHighlightOptions = {
   maxMatches: 100,
   ignoredWords: ignoredWords,
   highlightDelay: 0,
+  type: OptionTypes.Selection
 };
 
 const highlightConfig = Facet.define<SelectionHighlightOptions, Required<SelectionHighlightOptions>>({

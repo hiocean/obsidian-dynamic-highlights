@@ -8,7 +8,8 @@ import { DH_RUNNER } from "./settings/constant";
 import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, BaseHighlightOptions, OptionTypes, SelectionHighlightOptions } from "./settings/settings";
 import { SettingTab } from "./settings/ui";
 import { debugPrint, getDVAPI, limitedEval } from "./utils/funcs";
-// import { getAPI as DV } from "obsidian-dataview";
+const DHS_Enable_Fm = 'Enable FrontMatter Highlighter';
+
 
 export default class DynamicHighlightsPlugin extends Plugin {
   settings: DynamicHighlightsSettings;
@@ -24,20 +25,16 @@ export default class DynamicHighlightsPlugin extends Plugin {
 
   async onload() {
     // load data
-    await this.loadSettings();
-    addIcons();
+    await this.loadSettings(); addIcons();
 
     // generate UIs
     this.settingsTab = new SettingTab(this.app, this);
     this.addSettingTab(this.settingsTab);
-    this.addRibbonIcon('dyht', 'Enable FM highlighter', async (evt: MouseEvent) => {
-      await this.updateToggler();
-    });
+    this.addRibbonIcon('dyht', DHS_Enable_Fm, async () => { await this.updateToggler(); });
 
     // update exts
     this.staticHighlighter = staticHighlighterExtension(this);
     this.extensions = [];
-
     await this.update();
 
     // listen the change of leaf
@@ -45,22 +42,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
       this.updateFmOptions({ useCache: false });
       this.update(OptionTypes.Frontmatter);
     }))
-  }
-
-  async update(configType?: OptionTypes) {
-    await this.saveSettings();
-    if (!configType) this.initCSS();
-    if (!configType || configType == OptionTypes.Frontmatter) this.updateFmOptions();
-    if (!configType || configType == OptionTypes.Inlinejs) this.updateInjsOptions();
-    if (!configType || configType == OptionTypes.Selection) this.updateSelectionHighlighter();
-    if (!configType || configType != OptionTypes.Selection) {
-      this.updateStaticHighlighter();
-      this.updateStyles();
-      this.updateCustomCSS();
-      this.registerEditorExtension(this.extensions);
-    }
-    this.app.workspace.updateOptions();
-    
     // this.app.workspace.onLayoutReady(() => { 
     //   const target = activeDocument.querySelectorAll('.injs');
     //   // target[1].firstChild.innerText="111"
@@ -78,11 +59,26 @@ export default class DynamicHighlightsPlugin extends Plugin {
           const queryName = code.innerText.replace(`${config.keyword}.`, "")
           code.innerText = limitedEval({
             formular: config.queries[queryName]?.css || "", localVariables:
-              { thisline: thisline, dv: dv} 
+              { thisline: thisline, dv: dv }
           });
         };
       });
     })
+  }
+
+  async update(configType?: OptionTypes) {
+    await this.saveSettings();
+    if (!configType) this.initCSS();
+    if (!configType || configType == OptionTypes.Frontmatter) this.updateFmOptions();
+    if (!configType || configType == OptionTypes.Inlinejs) this.updateInjsOptions();
+    if (!configType || configType == OptionTypes.Selection) this.updateSelectionHighlighter();
+    if (!configType || configType != OptionTypes.Selection) {
+      this.updateStaticHighlighter();
+      this.updateStyles();
+      this.updateCustomCSS();
+      this.registerEditorExtension(this.extensions);
+    }
+    this.app.workspace.updateOptions();
   }
 
   private async updateToggler() {
@@ -135,7 +131,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
 
     if (!this.settings.frontmatterHighlighter.enabled) return
 
-    let { hasModified, result: currHighlightInFm } = await this.getFrontmatter(useCache)
+    let { changed: hasModified, result: currHighlightInFm } = await this.getFrontmatter(useCache)
     if (currHighlightInFm) {
       if (typeof currHighlightInFm === 'string' && currHighlightInFm.match(/[,，]/)) {
         currHighlightInFm = currHighlightInFm.split(/[,，]/).filter(e => e)
@@ -159,13 +155,15 @@ export default class DynamicHighlightsPlugin extends Plugin {
     }
   }
 
-  async getFrontmatter(useCache: boolean = true): Promise<{ hasModified: boolean; result: string | string[] | undefined; }> {
-    let hasModified = false; let result: string | string[] | undefined;
+  async getFrontmatter(useCache: boolean = true): Promise<{ changed: boolean; result: string | string[] | undefined; }> {
+    let changed = false;
+    let result: string | string[] | undefined;
     const tf = this.app.workspace.getActiveFile();
     if (tf) {
       const highlighterKw = this.settings.frontmatterHighlighter.keyword;
       const cachedFrontmatter = this.app.metadataCache.getFileCache(tf)?.frontmatter
-      if (useCache) { result = cachedFrontmatter![highlighterKw] }
+      result = cachedFrontmatter![highlighterKw];
+      if (useCache) { return { changed, result } }
 
       const fullText = await this.app.vault.read(tf);
       const regexfm = new RegExp(`---[\\s\\S]*?${highlighterKw}[\\s\\S]*?---`, 'gm')
@@ -176,22 +174,18 @@ export default class DynamicHighlightsPlugin extends Plugin {
         if (fmkw) {
           let result2 = fmkw[1].trim();
           if (result2) {
-            hasModified = (result2 != result);
-            result = result2;
-            return { hasModified, result }
+            return { changed: (result2 != result), result: result2 };
           }
         }
         const regexKwMultiLine = new RegExp(`(?<=^\\s*${highlighterKw}:[\\s]*[\\r\\n]+)(\\s*-.*?\\n)+`, 'gm')
         let result2 = fmMatch[0].match(regexKwMultiLine);
         if (result2) {
-          result2 = result2[0].split('\n').filter(e => e).map(e => e.replace(/\s*-/, "").trim())
-          hasModified = (result2 != result);
-          result = result2;
-          return { hasModified, result }
+          const result3 = result2[0].split('\n').filter(e => e).map(e => e.replace(/\s*-/, "").trim())
+          return { changed: (result3 != result), result: result3 }
         }
       }
     }
-    return { hasModified, result };
+    return { changed, result };
   }
 
   async loadSettings() {
@@ -225,21 +219,18 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.extensions.remove(this.styles);
     this.styles = buildStyles(this);
     this.extensions.push(this.styles);
-    // this.app.workspace.updateOptions();
   }
 
   updateStaticHighlighter() {
     this.extensions.remove(this.staticHighlighter);
     this.staticHighlighter = staticHighlighterExtension(this);
     this.extensions.push(this.staticHighlighter);
-    // this.app.workspace.updateOptions();
   }
 
   updateSelectionHighlighter() {
     this.extensions.remove(this.selectionHighlighter);
     this.selectionHighlighter = highlightSelectionMatches(this.settings.selectionHighlighter)
     this.extensions.push(this.selectionHighlighter);
-
   }
 
   iterateCM6(callback: (editor: EditorView) => unknown) {

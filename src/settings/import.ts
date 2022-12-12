@@ -46,10 +46,7 @@ export class ImportModal extends Modal {
             }
             queries = Object.assign(queries, importedSettings);
             Object.keys(importedSettings).forEach(key => queryOrder.includes(key) || queryOrder.push(key));
-            // await this.plugin.saveSettings();
-            // this.plugin.updateStaticHighlighter();
-            // this.plugin.updateStyles();
-            // this.plugin.updateCustomCSS();
+
             this.plugin.update( this.plugin.settings.staticHighlighter.type)
             this.plugin.settingsTab.display();
             this.close();
