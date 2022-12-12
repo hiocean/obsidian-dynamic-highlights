@@ -6,7 +6,7 @@ import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetTy
 import { cloneDeep } from "lodash";
 import type { RegExpExecArray } from "regexp-match-indices/types";
 import DynamicHighlightsPlugin from "src/main";
-import { BaseHighlightOptions, OptionTypes } from "src/settings/settings";
+import { QueriesOptions, OptionTypes } from "src/settings/settings";
 import { StyleSpec } from "style-mod";
 import { RegExpCursor } from "./regexp-cursor";
 import { getDVAPI, limitedEval } from "src/utils/funcs";
@@ -55,14 +55,14 @@ export class inlineJsWidget extends WidgetType {
   }
 }
 
-const defaultOptions: BaseHighlightOptions = {
+const defaultOptions: QueriesOptions = {
   queries: {},
   queryOrder: [],
   type: OptionTypes.Selection
 };
 
-export const staticHighlightConfig = Facet.define<BaseHighlightOptions, Required<BaseHighlightOptions>>({
-  combine(options: readonly BaseHighlightOptions[]) {
+export const staticHighlightConfig = Facet.define<QueriesOptions, Required<QueriesOptions>>({
+  combine(options: readonly QueriesOptions[]) {
     return combineConfig(options, defaultOptions, {
       queries: (a, b) => a || b,
       queryOrder: (a, b) => a || b,

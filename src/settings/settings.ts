@@ -2,7 +2,7 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-12-10 19:59:09
+ * @LastEditTime: 2022-12-12 16:03:01
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
@@ -29,16 +29,15 @@ export interface SearchQueries {
 export interface BasOptions {
   type: OptionTypes;
 }
-export interface BaseHighlightOptions extends BasOptions {
-
+export interface QueriesOptions extends BasOptions {
   queries: SearchQueries;
   queryOrder: string[];
 };
-export interface INJSOptions extends BaseHighlightOptions {
+export interface INJSOptions extends QueriesOptions {
   enabled: boolean;
   keyword: string;
 };
-export interface FrontmatterOptions extends BaseHighlightOptions {
+export interface FMOptions extends QueriesOptions {
   togglerIcon: string
   enableToggler: boolean;
   enabled: boolean;
@@ -47,8 +46,8 @@ export interface FrontmatterOptions extends BaseHighlightOptions {
 export interface DynamicHighlightsSettings {
   debug: boolean;
   selectionHighlighter: SelectionHighlightOptions;
-  staticHighlighter: BaseHighlightOptions;
-  frontmatterHighlighter: FrontmatterOptions;
+  staticHighlighter: QueriesOptions;
+  frontmatterHighlighter: FMOptions;
   injsOptions: INJSOptions;
 }
 
@@ -68,13 +67,6 @@ export interface SelectionHighlightOptions extends BasOptions {
 
 };
 
-// export interface OT {
-//   Selection: OptionName;
-//   Static: OptionName;
-//   Frontmatter: OptionName;
-//   Inlinejs: OptionName;
-// }
-
 export enum  OptionTypes {
   Selection= "selection",
   Static= "static",
@@ -82,7 +74,7 @@ export enum  OptionTypes {
   Inlinejs="injs"
 };
 
-// export type OptionName = "selection" | "static" | "fm" |"injs" ;
+
 export const DEFAULT_SETTINGS: DynamicHighlightsSettings = {
   debug: false,
   selectionHighlighter: {

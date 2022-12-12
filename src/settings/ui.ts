@@ -18,7 +18,7 @@ import { basicSetup } from "src/editor/extensions";
 import DynamicHighlightsPlugin from "../main";
 import { ExportModal } from "./export";
 import { ImportModal } from "./import";
-import { BaseHighlightOptions, FrontmatterOptions, INJSOptions, MarkItems, MarkTypes, markTypes, TabContentInfo } from "./settings";
+import { QueriesOptions, FMOptions, INJSOptions, MarkItems, MarkTypes, markTypes, TabContentInfo } from "./settings";
 import { materialPalenight } from "../editor/theme-dark";
 import { basicLightTheme } from "../editor/theme-light";
 import { SearchQuery } from "./settings";
@@ -162,7 +162,7 @@ export class SettingTab extends PluginSettingTab {
       });
   }
 
-  private frontmatterHighlightUI(config: FrontmatterOptions, containerEl: HTMLElement) {
+  private frontmatterHighlightUI(config: FMOptions, containerEl: HTMLElement) {
     containerEl.createEl("h3", { text: "Frontmatter based Highlights", });
 
     this.enableConfigUI({ config, containerEl });
@@ -277,7 +277,7 @@ export class SettingTab extends PluginSettingTab {
   }
 
 
-  private setKeywordUI(config: FrontmatterOptions | INJSOptions, containerEl: HTMLElement) {
+  private setKeywordUI(config: FMOptions | INJSOptions, containerEl: HTMLElement) {
     const defaultfmkw = config.keyword
     new Setting(containerEl)
       .setName("Set the keyword")
@@ -295,7 +295,7 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private enableConfigUI({ config, containerEl, setName = "Enable frontmatter highlighter "
-  }: { config: FrontmatterOptions | INJSOptions; containerEl: HTMLElement; setName?: string; }): void {
+  }: { config: FMOptions | INJSOptions; containerEl: HTMLElement; setName?: string; }): void {
     new Setting(containerEl).setName(setName)
       .addToggle(toggle => {
         toggle
@@ -309,7 +309,7 @@ export class SettingTab extends PluginSettingTab {
       });
   }
 
-  private getDefaultFmCSSName(config: BaseHighlightOptions): string {
+  private getDefaultFmCSSName(config: QueriesOptions): string {
     var id: number = Object.keys(config.queries).length;
     const defaultClassName = `frontmattercssNo${String(id)}`;
     return defaultClassName;
@@ -413,7 +413,7 @@ export class SettingTab extends PluginSettingTab {
     );
   }
 
-  private staticHighlightUI(config: BaseHighlightOptions, containerEl: HTMLElement) {
+  private staticHighlightUI(config: QueriesOptions, containerEl: HTMLElement) {
 
     containerEl.createEl("h3", { text: "Persistent Highlights", })
 
@@ -529,7 +529,7 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private saveButtonEl({ config, parentEl, callbackGettingQuery }: {
-    config: BaseHighlightOptions;
+    config: QueriesOptions;
     parentEl: HTMLDivElement;
     callbackGettingQuery: () => SearchQuery;
   }): ButtonComponent {
@@ -579,7 +579,7 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private highlightersContainerEl({ config, containerEl, editCallback }: {
-    config: BaseHighlightOptions; containerEl: HTMLElement;
+    config: QueriesOptions; containerEl: HTMLElement;
     editCallback: (highlighter: string) => void
   }): HTMLDivElement {
     const highlightersContainer = containerEl.createEl("div", { cls: "highlighter-container", });
@@ -699,7 +699,7 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private sortableContainerEl(highlightersContainer: HTMLDivElement,
-    config: BaseHighlightOptions): Sortable {
+    config: QueriesOptions): Sortable {
     return Sortable.create(highlightersContainer, {
       animation: 500,
       ghostClass: "highlighter-sortable-ghost",

@@ -4,11 +4,11 @@ import { debounce, MarkdownView, Notice, Plugin } from "obsidian";
 import { highlightSelectionMatches, reconfigureSelectionHighlighter } from "./highlighters/selection";
 import { buildStyles, staticHighlighterExtension } from "./highlighters/static";
 import addIcons from "./icons/customIcons";
-import { DH_RUNNER } from "./settings/constant";
-import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, BaseHighlightOptions, OptionTypes, SelectionHighlightOptions } from "./settings/settings";
+import { DH_RUNNER,DH_Enable_Fm } from "./settings/constant";
+import { CustomCSS, DEFAULT_SETTINGS, DynamicHighlightsSettings, QueriesOptions, OptionTypes, SelectionHighlightOptions } from "./settings/settings";
 import { SettingTab } from "./settings/ui";
 import { debugPrint, getDVAPI, limitedEval } from "./utils/funcs";
-const DHS_Enable_Fm = 'Enable FrontMatter Highlighter';
+
 
 
 export default class DynamicHighlightsPlugin extends Plugin {
@@ -30,7 +30,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     // generate UIs
     this.settingsTab = new SettingTab(this.app, this);
     this.addSettingTab(this.settingsTab);
-    this.addRibbonIcon('dyht', DHS_Enable_Fm, async () => { await this.updateToggler(); });
+    this.addRibbonIcon('dyht', DH_Enable_Fm, async () => { await this.updateToggler(); });
 
     // update exts
     this.staticHighlighter = staticHighlighterExtension(this);
@@ -242,8 +242,8 @@ export default class DynamicHighlightsPlugin extends Plugin {
   }
 
   updateConfig = debounce(
-    (type: string, config: BaseHighlightOptions | SelectionHighlightOptions) => {
-      let reconfigure: (config: BaseHighlightOptions | SelectionHighlightOptions) => StateEffect<unknown>;
+    (type: string, config: QueriesOptions | SelectionHighlightOptions) => {
+      let reconfigure: (config: QueriesOptions | SelectionHighlightOptions) => StateEffect<unknown>;
       if (type === "selection") {
         reconfigure = reconfigureSelectionHighlighter;
       } else {
