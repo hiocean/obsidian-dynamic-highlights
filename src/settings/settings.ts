@@ -2,7 +2,7 @@
  * @Author: hiocean
  * @Date: 2022-11-25 10:12:11
  * @LastEditors: hiocean
- * @LastEditTime: 2022-12-12 16:03:01
+ * @LastEditTime: 2022-12-12 17:07:30
  * @FilePath: \obsidian-dynamic-highlights\src\settings\settings.ts
  * @Description: 
  * 
@@ -68,10 +68,10 @@ export interface SelectionHighlightOptions extends BasOptions {
 };
 
 export enum  OptionTypes {
-  Selection= "selection",
-  Static= "static",
-  Frontmatter= "fm",
-  Inlinejs="injs"
+  Selection= "Selection",
+  Static= "Static",
+  Frontmatter= "Frontmatter",
+  Inlinejs="Inline Js"
 };
 
 

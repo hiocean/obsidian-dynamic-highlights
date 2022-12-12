@@ -81,18 +81,11 @@ export class SettingTab extends PluginSettingTab {
     this.navigateEl = navContainer.createDiv(DHS_Tab_Group);
     const settingsEl = this.containerEl.createDiv(DHS_content);
 
-    this.createTabAndContent('General', this.navigateEl, settingsEl,
-      (el: HTMLElement, tabName: string) => this.generateGeneralSettings(tabName, el));
-    this.createTabAndContent('Static Type', this.navigateEl, settingsEl,
-      (el: HTMLElement, tabName: string) => this.staticHighlightUI(this.plugin.settings.staticHighlighter, el));
-    this.createTabAndContent('Frontmatter Type', this.navigateEl, settingsEl,
-      (el: HTMLElement, tabName: string) => this.frontmatterHighlightUI(this.plugin.settings.frontmatterHighlighter, el));
-    this.createTabAndContent('Selection', this.navigateEl, settingsEl,
-      (el: HTMLElement, tabName: string) => this.selectionHighlightUI(el));
-    this.createTabAndContent('Ignored Word', this.navigateEl, settingsEl,
-      (el: HTMLElement, tabName: string) => this.ignoredWordUI(el));
-    this.createTabAndContent('Inline JS', this.navigateEl, settingsEl,
-      (el: HTMLElement, tabName: string) => this.injsUI(this.plugin.settings.injsOptions, el));
+    this.createTabAndContent('General', this.navigateEl, settingsEl, (el) => this.generateGeneralSettings(el));
+    this.createTabAndContent('Selection', this.navigateEl, settingsEl, (el) => this.selectionHighlightUI(el));
+    this.createTabAndContent('Static', this.navigateEl, settingsEl, (el) => this.staticHighlightUI(this.plugin.settings.staticHighlighter, el));
+    this.createTabAndContent('Frontmatter', this.navigateEl, settingsEl, (el) => this.fmSettingsUI(this.plugin.settings.frontmatterHighlighter, el));
+    this.createTabAndContent('InlineJS', this.navigateEl, settingsEl, (el) => this.injsUI(this.plugin.settings.injsOptions, el));
   }
 
   private createTabAndContent(tabName: string, navigateEl: HTMLElement, containerEl: HTMLElement,
@@ -140,9 +133,9 @@ export class SettingTab extends PluginSettingTab {
     this.allTabs.set(tabName, { content: tabContent, heading: tabHeader, navButton: tabEl });
   }
 
-  private generateGeneralSettings(tabName: string, containerEl: HTMLElement) {
-    // this.enableConfigUI({ config, containerEl });
-    // this.setFrontmatterKeywordUI(config, containerEl);
+  private generateGeneralSettings(containerEl: HTMLElement) {
+    this.enableConfigUI({ config: this.plugin.settings.frontmatterHighlighter, containerEl });
+    this.setKeywordUI({ config: this.plugin.settings.frontmatterHighlighter, containerEl });
     this.wordCursorSettingUI(containerEl);
     this.selectTextSettingUI(containerEl);
     this.delaySettingUI(containerEl);
@@ -162,11 +155,12 @@ export class SettingTab extends PluginSettingTab {
       });
   }
 
-  private frontmatterHighlightUI(config: FMOptions, containerEl: HTMLElement) {
+  private fmSettingsUI(config: FMOptions, containerEl: HTMLElement) {
     containerEl.createEl("h3", { text: "Frontmatter based Highlights", });
 
     this.enableConfigUI({ config, containerEl });
-    this.setKeywordUI(config, containerEl);
+    this.setKeywordUI({ config, containerEl });
+    this.setTogglerUI({ config, containerEl });
 
     const fmDefineQueryUI = new Setting(containerEl);
     fmDefineQueryUI.setName("Define Frontmatter highlighters")
@@ -214,10 +208,11 @@ export class SettingTab extends PluginSettingTab {
 
     this.sortableContainerEl(highlightersContainer, config);
   }
+
   private injsUI(config: INJSOptions, containerEl: HTMLElement) {
     containerEl.createEl("h3", { text: "Inline JS Functions", });
-    this.enableConfigUI({ config, containerEl, setName: "Enable INJS" });
-    this.setKeywordUI(config, containerEl);
+    this.enableConfigUI({ config, containerEl });
+    this.setKeywordUI({ config, containerEl });
 
     const defineUI = new Setting(containerEl);
 
@@ -277,10 +272,27 @@ export class SettingTab extends PluginSettingTab {
   }
 
 
-  private setKeywordUI(config: FMOptions | INJSOptions, containerEl: HTMLElement) {
+  private setTogglerUI({ config, containerEl }: { config: FMOptions; containerEl: HTMLElement; }) {
+    const defaultIcon = config.togglerIcon
+    new Setting(containerEl)
+      .setName(`Set the icon of ${config.type} toggler.`)
+      .setDesc(`The default Icon is '${defaultIcon}'.`)
+      .addText(text => {
+        text.inputEl.type = "string";
+        // text.setPlaceholder(defaultfmkw);
+        text.inputEl.addClass(DHS_Name);
+        text.setValue(config.togglerIcon).onChange(value => {
+          config.togglerIcon = value;
+          // this.plugin.saveSettings();
+          this.plugin.update(config.type);
+        });
+      });
+  }
+
+  private setKeywordUI({ config, containerEl }: { config: FMOptions | INJSOptions; containerEl: HTMLElement; }) {
     const defaultfmkw = config.keyword
     new Setting(containerEl)
-      .setName("Set the keyword")
+      .setName(`Set the keyword of ${config.type}.`)
       .setDesc(`The default keyword is '${defaultfmkw}'.`)
       .addText(text => {
         text.inputEl.type = "string";
@@ -294,8 +306,9 @@ export class SettingTab extends PluginSettingTab {
       });
   }
 
-  private enableConfigUI({ config, containerEl, setName = "Enable frontmatter highlighter "
+  private enableConfigUI({ config, containerEl
   }: { config: FMOptions | INJSOptions; containerEl: HTMLElement; setName?: string; }): void {
+    const setName = `Enable ${config.type} Functions!`
     new Setting(containerEl).setName(setName)
       .addToggle(toggle => {
         toggle
@@ -330,11 +343,13 @@ export class SettingTab extends PluginSettingTab {
   }
 
   private selectionHighlightUI(containerEl: HTMLElement) {
+
     containerEl.createEl("h3", { text: "Selection Highlights", });
 
     this.wordCursorSettingUI(containerEl);
     this.selectTextSettingUI(containerEl);
     this.delaySettingUI(containerEl);
+    this.ignoredWordUI(containerEl)
   }
 
   private delaySettingUI(containerEl: HTMLElement) {
@@ -418,7 +433,9 @@ export class SettingTab extends PluginSettingTab {
     containerEl.createEl("h3", { text: "Persistent Highlights", })
 
     const staticDefineQueryUI = new Setting(containerEl);
-    staticDefineQueryUI.setName("Define Common highlighters").setClass("highlighter-definition").setDesc(`In this section you define a unique highlighter name along with the css.        Make sure to click the save button.`);
+    staticDefineQueryUI.setName("Define Common highlighters")
+      .setClass("highlighter-definition")
+      .setDesc(`In this section you define a unique highlighter name along with the css.        Make sure to click the save button.`);
 
     const classInput = this.textInputEl({ parent: staticDefineQueryUI.controlEl });
 
