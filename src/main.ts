@@ -82,37 +82,41 @@ export default class DynamicHighlightsPlugin extends Plugin {
   }
 
   private async updateToggler() {
-    const togglerEnabled = this.settings.frontmatterHighlighter.enableToggler;
-    this.settings.frontmatterHighlighter.enableToggler = !togglerEnabled;
-    await this.saveSettings();
-    if (!togglerEnabled) {
-      this.addToggler();
-    } else {
-      this.delToggler();
-    }
+    const enabled = !this.settings.frontmatterHighlighter.enabled;
+    this.settings.frontmatterHighlighter.enabled = enabled;
+    this.updateFmOptions({ useCache: false });
+    this.update(OptionTypes.Static)
+    // const togglerEnabled = this.settings.frontmatterHighlighter.enableToggler;
+    // this.settings.frontmatterHighlighter.enableToggler = !togglerEnabled;
+    // await this.saveSettings();
+    // if (!togglerEnabled) {
+    //   this.addToggler();
+    // } else {
+    //   this.delToggler();
+    // }
   }
 
-  private addToggler(): void {
-    this.toggler = document.createElement('button');
-    const icon = document.createElement('span');
-    icon.innerText = this.settings.frontmatterHighlighter.togglerIcon;
-    this.toggler.classList.add(DH_RUNNER);
-    this.toggler.appendChild(icon);
-    this.toggler.addEventListener('click', async () => {
-      this.updateFmOptions({ useCache: false });
-      this.update(OptionTypes.Static)
-    });
-    document.body.appendChild(this.toggler);
-    new Notice("Toggler is enabled.");
-  }
+  // private addToggler(): void {
+  //   this.toggler = document.createElement('button');
+  //   const icon = document.createElement('span');
+  //   icon.innerText = this.settings.frontmatterHighlighter.togglerIcon;
+  //   this.toggler.classList.add(DH_RUNNER);
+  //   this.toggler.appendChild(icon);
+  //   this.toggler.addEventListener('click', async () => {
+  //     this.updateFmOptions({ useCache: false });
+  //     this.update(OptionTypes.Static)
+  //   });
+  //   document.body.appendChild(this.toggler);
+  //   new Notice("Toggler is enabled.");
+  // }
 
-  private delToggler() {
-    this.settings.frontmatterHighlighter.enabled = false;
-    if (this.toggler) {
-      this.toggler.remove();
-      new Notice("Toggler is disabled.");
-    }
-  }
+  // private delToggler() {
+  //   this.settings.frontmatterHighlighter.enabled = false;
+  //   if (this.toggler) {
+  //     this.toggler.remove();
+  //     new Notice("Toggler is disabled.");
+  //   }
+  // }
 
   async updateInjsOptions() {
     const config = this.settings.injsOptions
@@ -131,7 +135,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
 
     if (!this.settings.frontmatterHighlighter.enabled) return
 
-    let { changed: hasModified, result: currHighlightInFm } = await this.getFrontmatter(useCache)
+    let { result: currHighlightInFm } = await this.getFrontmatter(useCache);
     if (currHighlightInFm) {
       if (typeof currHighlightInFm === 'string' && currHighlightInFm.match(/[,，]/)) {
         currHighlightInFm = currHighlightInFm.split(/[,，]/).filter(e => e)
@@ -150,7 +154,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
         tempQuery.query = currHighlightInFm[i]
         this.settings.staticHighlighter.queries[className] = tempQuery
         debugPrint({ arg: `addded: Name: ${className}; query: ${currHighlightInFm[i]}`, debug: this.settings.debug });
-        hasModified = true
+        // hasModified = true
       }
     }
   }
@@ -192,7 +196,7 @@ export default class DynamicHighlightsPlugin extends Plugin {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
     if (this.settings.selectionHighlighter.highlightDelay < 200) {
       this.settings.selectionHighlighter.highlightDelay = 200;
-      this.saveSettings;
+      this.saveSettings();
     }
   }
 
@@ -260,6 +264,6 @@ export default class DynamicHighlightsPlugin extends Plugin {
   );
 
   onunload() {
-    this.delToggler();
+    // this.delToggler();
   }
 }
